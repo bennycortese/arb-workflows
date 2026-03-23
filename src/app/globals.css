@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark navy background — evokes trading terminal / Kalshi dark mode */
+    --background: 222 26% 5%;
+    --foreground: 210 30% 92%;
+
+    --card: 222 22% 8%;
+    --card-foreground: 210 30% 92%;
+
+    --popover: 222 22% 8%;
+    --popover-foreground: 210 30% 92%;
+
+    /* Teal/cyan primary — bridges Kalshi green and Polymarket blue */
+    --primary: 186 100% 42%;
+    --primary-foreground: 222 26% 5%;
+
+    --secondary: 222 22% 12%;
+    --secondary-foreground: 210 20% 60%;
+
+    --muted: 222 22% 12%;
+    --muted-foreground: 210 15% 45%;
+
+    --accent: 186 100% 42%;
+    --accent-foreground: 222 26% 5%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 22% 14%;
+    --input: 222 22% 14%;
+    --ring: 186 100% 42%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* ── Typography ── */
+  .text-balance {
+    text-wrap: balance;
+  }
+  .font-mono-feature {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  }
+
+  /* ── Gradient text — teal to blue (Kalshi → Polymarket) ── */
+  .gradient-text {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(135deg, #2dd4bf 0%, #06b6d4 40%, #3b82f6 100%);
+  }
+  .gradient-text-green {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+  }
+
+  /* ── Dark glass surface ── */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.09);
+  }
+
+  /* ── Glow effects ── */
+  .glow-teal {
+    box-shadow: 0 0 40px rgba(6, 182, 212, 0.15), 0 0 80px rgba(6, 182, 212, 0.06);
+  }
+  .glow-sm {
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.2);
+  }
+  .glow-green {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+  }
+
+  /* ── Hero grid ── */
+  .bg-grid-lines {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .bg-radial-fade {
+    background: radial-gradient(ellipse 90% 70% at 50% 50%, transparent 25%, hsl(var(--background)) 100%);
+  }
+
+  /* ── Section divider ── */
+  .section-border {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* ── Node connector line ── */
+  .connector-line {
+    background: linear-gradient(to bottom, rgba(6, 182, 212, 0.3), rgba(6, 182, 212, 0.1));
+    background-size: 100% 200%;
+    animation: flow-line 2s linear infinite;
+  }
+
+  /* ── Node type badges ── */
+  .badge-kalshi {
+    @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20;
+  }
+  .badge-polymarket {
+    @apply bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+  .badge-discord {
+    @apply bg-indigo-500/10 text-indigo-400 border border-indigo-500/20;
+  }
+  .badge-gmail {
+    @apply bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+  .badge-teal {
+    @apply bg-cyan-500/10 text-cyan-400 border border-cyan-500/20;
+  }
+
+  /* ── Price/number display ── */
+  .price-up {
+    @apply text-emerald-400 font-mono-feature;
+  }
+  .price-down {
+    @apply text-red-400 font-mono-feature;
+  }
+  .price-neutral {
+    @apply text-white/60 font-mono-feature;
+  }
+
+  /* ── Status dot ── */
+  .status-live {
+    @apply w-2 h-2 rounded-full bg-emerald-400 animate-pulse-dot;
+  }
+  .status-paused {
+    @apply w-2 h-2 rounded-full bg-yellow-400;
+  }
+  .status-error {
+    @apply w-2 h-2 rounded-full bg-red-400;
+  }
+
+  /* ── Input overrides ── */
+  input[type="text"],
+  input[type="email"],
+  input[type="url"],
+  input[type="number"],
+  textarea,
+  select {
+    @apply bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground;
+    @apply focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring;
+    @apply text-sm px-3 py-2 w-full;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+}
