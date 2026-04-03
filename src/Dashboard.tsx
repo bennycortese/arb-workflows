@@ -1,7 +1,9 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
-import { useUser, UserButton } from '@clerk/react';
+import { useUser, UserButton } from '@clerk/nextjs';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
@@ -106,7 +108,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 
 export default function Dashboard() {
   const { user } = useUser();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [, setActiveId] = useAtom(activeWorkflowIdAtom);
   const [creating, setCreating] = useState(false);
@@ -123,7 +125,7 @@ export default function Dashboard() {
     };
     setWorkflows(prev => [wf, ...prev]);
     setActiveId(wf.id);
-    navigate(`/workflow/${wf.id}`);
+    router.push(`/workflow/${wf.id}`);
   }
 
   function deleteWorkflow(id: string) {
@@ -136,7 +138,7 @@ export default function Dashboard() {
 
   function openWorkflow(id: string) {
     setActiveId(id);
-    navigate(`/workflow/${id}`);
+    router.push(`/workflow/${id}`);
   }
 
   return (
@@ -145,7 +147,7 @@ export default function Dashboard() {
       <header className="border-b border-white/[0.05] bg-background/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-[1100px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/')} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+            <button onClick={() => router.push('/')} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
               <div className="w-6 h-6 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>

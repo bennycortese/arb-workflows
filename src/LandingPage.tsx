@@ -1,13 +1,15 @@
+'use client';
+
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUser, SignInButton } from '@clerk/react';
+import { useRouter } from 'next/navigation';
+import { useUser, SignInButton } from '@clerk/nextjs';
 import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 function Navbar() {
   const { isSignedIn } = useUser();
-  const navigate = useNavigate();
+  const router = useRouter();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] bg-background/80 backdrop-blur-md">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -24,7 +26,7 @@ function Navbar() {
           <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">Nodes</a>
           <a href="#how-it-works" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">How it works</a>
           {isSignedIn ? (
-            <Button variant="primary" size="sm" onClick={() => navigate('/dashboard')}>
+            <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
               Dashboard →
             </Button>
           ) : (
@@ -41,7 +43,7 @@ function Navbar() {
 // ── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   const { isSignedIn } = useUser();
-  const navigate = useNavigate();
+  const router = useRouter();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
       {/* Grid background */}
@@ -71,7 +73,7 @@ function Hero() {
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {isSignedIn ? (
-            <Button variant="primary" size="lg" onClick={() => navigate('/dashboard')}>
+            <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
               Open Dashboard →
             </Button>
           ) : (
@@ -285,7 +287,7 @@ function HowItWorks() {
 // ── CTA ───────────────────────────────────────────────────────────────────────
 function CTA() {
   const { isSignedIn } = useUser();
-  const navigate = useNavigate();
+  const router = useRouter();
   return (
     <section className="section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
@@ -296,7 +298,7 @@ function CTA() {
           Free to use. No credit card required.
         </p>
         {isSignedIn ? (
-          <Button variant="primary" size="lg" onClick={() => navigate('/dashboard')}>
+          <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
             Open Dashboard →
           </Button>
         ) : (

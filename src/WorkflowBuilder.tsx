@@ -1,7 +1,9 @@
+'use client';
+
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useRouter, useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
-import { UserButton } from '@clerk/react';
+import { UserButton } from '@clerk/nextjs';
 import { Button } from './@/components/ui/button';
 import { workflowsAtom, activeWorkflowIdAtom, WorkflowNode, NodeType, createNode, KalshiConfig, PolymarketConfig, DiscordConfig, GmailConfig, NodeConfig } from './atoms';
 import { KalshiNodeConfig, KalshiNodeHeader } from './nodes/KalshiNode';
@@ -171,8 +173,9 @@ function RunLog({ entries }: { entries: RunLogEntry[] }) {
 
 // ── WorkflowBuilder page ──────────────────────────────────────────────────────
 export default function WorkflowBuilder() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const id = params.id as string | undefined;
+  const router = useRouter();
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [activeId] = useAtom(activeWorkflowIdAtom);
 
@@ -187,7 +190,7 @@ export default function WorkflowBuilder() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center flex-col gap-4">
         <p className="text-white/50">Workflow not found.</p>
-        <Button variant="outline" onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
       </div>
     );
   }
@@ -224,6 +227,7 @@ export default function WorkflowBuilder() {
   }
 
   async function runWorkflow() {
+    if (!workflow) return;
     const newLog: RunLogEntry[] = [];
     const ts = () => new Date().toLocaleTimeString();
 
@@ -249,7 +253,7 @@ export default function WorkflowBuilder() {
     setLog([...newLog]);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL ?? 'http://localhost:5000'}/api/workflows/run`, {
+      const response = await fetch('/api/workflows/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow }),
@@ -289,7 +293,7 @@ export default function WorkflowBuilder() {
       {/* Header */}
       <header className="border-b border-white/[0.05] bg-background/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-[900px] mx-auto px-6 h-14 flex items-center gap-4">
-          <button onClick={() => navigate('/dashboard')} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={() => router.push('/dashboard')} className="text-white/40 hover:text-white transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
 
