@@ -1,5 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/workflow/[id]/page": "app/workflow/[id]/page.js"
-}
