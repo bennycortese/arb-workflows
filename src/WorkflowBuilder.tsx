@@ -98,8 +98,8 @@ function NodeCard({ node, index, total, onUpdate, onRemove, onMoveUp, onMoveDown
     <div className="relative">
       <div className="glass-card rounded-xl overflow-hidden border border-white/[0.06] hover:border-white/[0.1] transition-colors">
         {/* Node header */}
-        <button
-          className="w-full flex items-center justify-between p-4 text-left"
+        <div
+          className="w-full flex items-center justify-between p-4 text-left cursor-pointer"
           onClick={() => setExpanded(e => !e)}
         >
           {renderHeader()}
@@ -123,7 +123,7 @@ function NodeCard({ node, index, total, onUpdate, onRemove, onMoveUp, onMoveDown
               </svg>
             </button>
           </div>
-        </button>
+        </div>
 
         {/* Config panel */}
         {expanded && (
