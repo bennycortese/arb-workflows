@@ -3,3 +3,4 @@
 /.clerk/
 /node_modules/
 .env
+/.next/
