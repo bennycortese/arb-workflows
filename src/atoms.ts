@@ -35,12 +35,20 @@ export interface WorkflowNode {
   type: NodeType;
   config: NodeConfig;
   expanded: boolean;
+  position?: { x: number; y: number };
+}
+
+export interface WorkflowEdge {
+  id: string;
+  source: string;
+  target: string;
 }
 
 export interface Workflow {
   id: string;
   name: string;
   nodes: WorkflowNode[];
+  edges?: WorkflowEdge[];
   enabled: boolean;
   createdAt: string;
   lastRun?: string;
