@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
+import { useTranslations } from 'next-intl';
 import { UserButton } from '@clerk/nextjs';
 import { Button } from './@/components/ui/button';
 import {
@@ -10,12 +11,14 @@ import {
   Background, BackgroundVariant, Controls,
   addEdge, useNodesState, useEdgesState, useReactFlow,
   Handle, Position, MarkerType, Panel,
+  BaseEdge, EdgeLabelRenderer, getSmoothStepPath,
   type Node as RFNode,
   type Edge as RFEdge,
   type Connection,
   type NodeChange,
   type EdgeChange,
   type NodeProps,
+  type EdgeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -38,12 +41,13 @@ const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source'
 ];
 
 function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClose: () => void }) {
+  const t = useTranslations('builder');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-card border border-white/[0.08] rounded-2xl p-6 w-80 shadow-2xl" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-semibold text-white mb-4">Add a node</h3>
+        <h3 className="text-sm font-semibold text-white mb-4">{t('addNodeTitle')}</h3>
         <div className="space-y-2">
-          <p className="text-xs text-white/30 font-mono-feature uppercase tracking-wider mb-2">Sources</p>
+          <p className="text-xs text-white/30 uppercase tracking-wider mb-2">{t('sourcesLabel')}</p>
           {ADD_OPTIONS.filter(o => o.role === 'source').map(opt => (
             <button
               key={opt.type}
@@ -57,7 +61,7 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
               </div>
             </button>
           ))}
-          <p className="text-xs text-white/30 font-mono-feature uppercase tracking-wider mt-3 mb-2">Actions</p>
+          <p className="text-xs text-white/30 uppercase tracking-wider mt-3 mb-2">{t('actionsLabel')}</p>
           {ADD_OPTIONS.filter(o => o.role === 'action').map(opt => (
             <button
               key={opt.type}
@@ -72,11 +76,81 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
             </button>
           ))}
         </div>
-        <Button variant="ghost" size="sm" className="w-full mt-4" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" size="sm" className="w-full mt-4" onClick={onClose}>
+          {useTranslations('common')('cancel')}
+        </Button>
       </div>
     </div>
   );
 }
+
+// ── Custom deletable edge ─────────────────────────────────────────────────────
+function DeletableEdge({
+  id,
+  sourceX, sourceY, targetX, targetY,
+  sourcePosition, targetPosition,
+  selected,
+}: EdgeProps) {
+  const { deleteElements } = useReactFlow();
+  const [hovered, setHovered] = useState(false);
+  const t = useTranslations('builder');
+
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX, sourceY, sourcePosition,
+    targetX, targetY, targetPosition,
+    borderRadius: 14,
+  });
+
+  const isHighlighted = selected || hovered;
+  const stroke = isHighlighted ? 'rgba(6,182,212,0.7)' : 'rgba(255,255,255,0.2)';
+
+  return (
+    <>
+      {/* Invisible fat hit area */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={24}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ cursor: 'pointer' }}
+      />
+      <BaseEdge
+        path={edgePath}
+        style={{ stroke, strokeWidth: isHighlighted ? 2.5 : 2, transition: 'stroke 0.15s, stroke-width 0.15s' }}
+        markerEnd={{
+          type: MarkerType.ArrowClosed,
+          color: stroke,
+          width: 16,
+          height: 16,
+        }}
+      />
+      <EdgeLabelRenderer>
+        <div
+          style={{
+            position: 'absolute',
+            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            pointerEvents: 'all',
+          }}
+          className={`nodrag nopan edge-delete-wrap ${isHighlighted ? 'edge-delete-visible' : ''}`}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          <button
+            className="edge-delete-btn"
+            onClick={() => deleteElements({ edges: [{ id }] })}
+            title={t('deleteConnection')}
+          >
+            ×
+          </button>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const edgeTypes = { deletable: DeletableEdge };
 
 // ── Shared hook for node config ───────────────────────────────────────────────
 function useNodeConfig(nodeId: string, workflowId: string) {
@@ -95,7 +169,7 @@ function useNodeConfig(nodeId: string, workflowId: string) {
   return { node, updateConfig };
 }
 
-// ── Canvas node shell (shared layout) ────────────────────────────────────────
+// ── Canvas node shell ─────────────────────────────────────────────────────────
 function CanvasNodeShell({
   id,
   isSource,
@@ -111,6 +185,7 @@ function CanvasNodeShell({
 }) {
   const { deleteElements } = useReactFlow();
   const [expanded, setExpanded] = useState(true);
+  const t = useTranslations('nodes');
 
   const removeNode = useCallback(() => {
     deleteElements({ nodes: [{ id }] });
@@ -118,15 +193,18 @@ function CanvasNodeShell({
 
   return (
     <div className="canvas-node" style={{ borderColor: `${accentColor}28` }}>
+      {/* Target handle (left) — for action nodes */}
       {!isSource && (
         <Handle
           type="target"
           position={Position.Left}
-          style={{ background: accentColor, border: '2px solid rgba(7,11,20,0.8)', width: 12, height: 12 }}
+          className="cn-handle"
+          style={{ background: accentColor }}
+          title={t('dragToConnect')}
         />
       )}
 
-      {/* Header — draggable area */}
+      {/* Header — drag area */}
       <div className="cn-header" onClick={() => setExpanded(e => !e)}>
         {header}
         <div className="cn-actions nodrag" onClick={e => e.stopPropagation()}>
@@ -138,7 +216,7 @@ function CanvasNodeShell({
               <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="cn-remove" onClick={removeNode} title="Remove node">
+          <button className="cn-remove" onClick={removeNode} title={t('removeNode')}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -153,18 +231,21 @@ function CanvasNodeShell({
         </div>
       )}
 
+      {/* Source handle (right) — for source nodes */}
       {isSource && (
         <Handle
           type="source"
           position={Position.Right}
-          style={{ background: accentColor, border: '2px solid rgba(7,11,20,0.8)', width: 12, height: 12 }}
+          className="cn-handle"
+          style={{ background: accentColor }}
+          title={t('dragToConnect')}
         />
       )}
     </div>
   );
 }
 
-// ── Individual canvas node types (must be defined at module level for RF) ─────
+// ── Individual canvas node types (module-level = stable refs for React Flow) ──
 
 function KalshiCanvasNode({ id, data }: NodeProps) {
   const workflowId = (data as { workflowId: string }).workflowId;
@@ -172,9 +253,7 @@ function KalshiCanvasNode({ id, data }: NodeProps) {
   if (!node) return null;
   return (
     <CanvasNodeShell
-      id={id}
-      isSource={true}
-      accentColor="#4ade80"
+      id={id} isSource={true} accentColor="#4ade80"
       header={<KalshiNodeHeader />}
       configPanel={<KalshiNodeConfig config={node.config as KalshiConfig} onChange={updateConfig} />}
     />
@@ -187,9 +266,7 @@ function PolymarketCanvasNode({ id, data }: NodeProps) {
   if (!node) return null;
   return (
     <CanvasNodeShell
-      id={id}
-      isSource={true}
-      accentColor="#60a5fa"
+      id={id} isSource={true} accentColor="#60a5fa"
       header={<PolymarketNodeHeader />}
       configPanel={<PolymarketNodeConfig config={node.config as PolymarketConfig} onChange={updateConfig} />}
     />
@@ -202,9 +279,7 @@ function DiscordCanvasNode({ id, data }: NodeProps) {
   if (!node) return null;
   return (
     <CanvasNodeShell
-      id={id}
-      isSource={false}
-      accentColor="#818cf8"
+      id={id} isSource={false} accentColor="#818cf8"
       header={<DiscordNodeHeader />}
       configPanel={<DiscordNodeConfig config={node.config as DiscordConfig} onChange={updateConfig} />}
     />
@@ -217,9 +292,7 @@ function GmailCanvasNode({ id, data }: NodeProps) {
   if (!node) return null;
   return (
     <CanvasNodeShell
-      id={id}
-      isSource={false}
-      accentColor="#f87171"
+      id={id} isSource={false} accentColor="#f87171"
       header={<GmailNodeHeader />}
       configPanel={<GmailNodeConfig config={node.config as GmailConfig} onChange={updateConfig} />}
     />
@@ -233,28 +306,17 @@ const nodeTypes = {
   gmail:      GmailCanvasNode,
 };
 
-// ── Edge style ────────────────────────────────────────────────────────────────
-const edgeStyle = {
-  stroke: 'rgba(255,255,255,0.18)',
-  strokeWidth: 2,
-};
-const edgeMarker = {
-  type: MarkerType.ArrowClosed,
-  color: 'rgba(255,255,255,0.18)',
-};
-
+// ── Edge factory ──────────────────────────────────────────────────────────────
 function makeEdge(source: string, target: string): RFEdge {
   return {
     id: `e-${source}-${target}`,
     source,
     target,
-    type: 'smoothstep',
-    style: edgeStyle,
-    markerEnd: edgeMarker,
+    type: 'deletable',
   };
 }
 
-// ── Default positions ─────────────────────────────────────────────────────────
+// ── Default node positions ────────────────────────────────────────────────────
 function defaultPosition(node: WorkflowNode, allNodes: WorkflowNode[]) {
   const isSource = node.type === 'kalshi' || node.type === 'polymarket';
   const peers = allNodes.filter(n =>
@@ -266,7 +328,7 @@ function defaultPosition(node: WorkflowNode, allNodes: WorkflowNode[]) {
   return { x: isSource ? 80 : 560, y: 80 + Math.max(0, idx) * 420 };
 }
 
-// ── Run log ───────────────────────────────────────────────────────────────────
+// ── Run log type ──────────────────────────────────────────────────────────────
 interface RunLogEntry {
   ts: string;
   message: string;
@@ -280,6 +342,7 @@ export default function WorkflowBuilder() {
   const router = useRouter();
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [activeId] = useAtom(activeWorkflowIdAtom);
+  const t = useTranslations('builder');
 
   const workflowId = id ?? activeId ?? '';
   const workflow = workflows.find(w => w.id === workflowId);
@@ -290,27 +353,20 @@ export default function WorkflowBuilder() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
 
-  // Init RF state from jotai when the workflow is loaded
+  // Init React Flow state from jotai on workflow load
   useEffect(() => {
     if (!workflow) return;
-
-    const nodes: RFNode[] = workflow.nodes.map(n => ({
+    setRFNodes(workflow.nodes.map(n => ({
       id: n.id,
       type: n.type,
       position: n.position ?? defaultPosition(n, workflow.nodes),
       data: { workflowId },
-    }));
-
-    const edges: RFEdge[] = (workflow.edges ?? []).map(e =>
-      makeEdge(e.source, e.target)
-    );
-
-    setRFNodes(nodes);
-    setRFEdges(edges);
+    })));
+    setRFEdges((workflow.edges ?? []).map(e => makeEdge(e.source, e.target)));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId]); // intentionally only on workflowId change — custom nodes manage their own config
+  }, [workflowId]);
 
-  // Sync drag positions → jotai
+  // Persist drag positions → jotai
   const onNodeDragStop = useCallback((_: React.MouseEvent, node: RFNode) => {
     setWorkflows(prev => prev.map(w =>
       w.id === workflowId
@@ -319,32 +375,32 @@ export default function WorkflowBuilder() {
     ));
   }, [workflowId, setWorkflows]);
 
-  // Node changes (incl. keyboard Delete)
+  // Node changes (Delete / Backspace removes selected nodes)
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     const removed = changes.filter(c => c.type === 'remove');
-    if (removed.length === 0) return;
-    const removedIds = new Set(removed.map((c: any) => c.id));
+    if (!removed.length) return;
+    const ids = new Set(removed.map((c: any) => c.id));
     setWorkflows(prev => prev.map(w =>
       w.id === workflowId
         ? {
             ...w,
-            nodes: w.nodes.filter(n => !removedIds.has(n.id)),
-            edges: (w.edges ?? []).filter(e => !removedIds.has(e.source) && !removedIds.has(e.target)),
+            nodes: w.nodes.filter(n => !ids.has(n.id)),
+            edges: (w.edges ?? []).filter(e => !ids.has(e.source) && !ids.has(e.target)),
           }
         : w
     ));
   }, [onNodesChange, workflowId, setWorkflows]);
 
-  // Edge changes (incl. keyboard Delete)
+  // Edge changes (Delete / Backspace removes selected edges)
   const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
     onEdgesChange(changes);
     const removed = changes.filter(c => c.type === 'remove');
-    if (removed.length === 0) return;
-    const removedIds = new Set(removed.map((c: any) => c.id));
+    if (!removed.length) return;
+    const ids = new Set(removed.map((c: any) => c.id));
     setWorkflows(prev => prev.map(w =>
       w.id === workflowId
-        ? { ...w, edges: (w.edges ?? []).filter(e => !removedIds.has(e.id)) }
+        ? { ...w, edges: (w.edges ?? []).filter(e => !ids.has(e.id)) }
         : w
     ));
   }, [onEdgesChange, workflowId, setWorkflows]);
@@ -370,17 +426,10 @@ export default function WorkflowBuilder() {
                : (n.type === 'discord' || n.type === 'gmail')
     );
     const position = { x: isSource ? 80 : 560, y: 80 + peers.length * 420 };
-    const nodeWithPos = { ...node, position };
-
     setWorkflows(prev => prev.map(w =>
-      w.id === workflowId ? { ...w, nodes: [...w.nodes, nodeWithPos] } : w
+      w.id === workflowId ? { ...w, nodes: [...w.nodes, { ...node, position }] } : w
     ));
-    setRFNodes(prev => [...prev, {
-      id: node.id,
-      type: node.type,
-      position,
-      data: { workflowId },
-    }]);
+    setRFNodes(prev => [...prev, { id: node.id, type: node.type, position, data: { workflowId } }]);
   }
 
   function updateName(name: string) {
@@ -391,40 +440,33 @@ export default function WorkflowBuilder() {
     if (!workflow) return;
     const ts = () => new Date().toLocaleTimeString();
     const newLog: RunLogEntry[] = [];
-
     const sources = workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket');
     const actions = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'gmail');
 
-    if (sources.length === 0) {
-      setLog([{ ts: ts(), message: 'No source node (Kalshi/Polymarket) configured.', type: 'error' }]);
-      return;
-    }
-    if (actions.length === 0) {
-      setLog([{ ts: ts(), message: 'No action node (Discord/Gmail) configured.', type: 'error' }]);
-      return;
-    }
+    if (!sources.length) { setLog([{ ts: ts(), message: t('noSourceError'), type: 'error' }]); return; }
+    if (!actions.length) { setLog([{ ts: ts(), message: t('noActionError'), type: 'error' }]); return; }
 
     setRunning(true);
     newLog.push({ ts: ts(), message: `Starting "${workflow.name}"…`, type: 'info' });
     setLog([...newLog]);
 
     try {
-      const response = await fetch('/api/workflows/run', {
+      const res = await fetch('/api/workflows/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow }),
       });
-      const data = await response.json() as {
+      const data = await res.json() as {
         success: boolean;
         results: { nodeId: string; type: string; status: string; message: string }[];
         error?: string;
       };
-      if (!response.ok) throw new Error(data.error ?? 'Server error');
-      for (const result of data.results) {
+      if (!res.ok) throw new Error(data.error ?? 'Server error');
+      for (const r of data.results) {
         newLog.push({
           ts: ts(),
-          message: `[${result.type.toUpperCase()}] ${result.message}`,
-          type: result.status === 'error' ? 'error' : result.status === 'ok' ? 'success' : 'info',
+          message: `[${r.type.toUpperCase()}] ${r.message}`,
+          type: r.status === 'error' ? 'error' : r.status === 'ok' ? 'success' : 'info',
         });
       }
       setWorkflows(prev => prev.map(w =>
@@ -435,7 +477,6 @@ export default function WorkflowBuilder() {
     } catch (err: any) {
       newLog.push({ ts: ts(), message: `Error: ${err.message}`, type: 'error' });
     }
-
     setLog([...newLog]);
     setRunning(false);
   }
@@ -443,8 +484,8 @@ export default function WorkflowBuilder() {
   if (!workflow) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center flex-col gap-4">
-        <p className="text-white/50">Workflow not found.</p>
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+        <p className="text-white/50">{t('workflowNotFound')}</p>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>{t('backButton')}</Button>
       </div>
     );
   }
@@ -457,7 +498,7 @@ export default function WorkflowBuilder() {
     <div className="wfb-root">
       {/* ── Header ── */}
       <header className="wfb-header">
-        <button onClick={() => router.push('/dashboard')} className="wfb-back" title="Back to dashboard">
+        <button onClick={() => router.push('/dashboard')} className="wfb-back" title={t('backToDashboard')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -473,32 +514,27 @@ export default function WorkflowBuilder() {
         <div className="wfb-header-right">
           <div className="wfb-chips">
             <span className={`wfb-chip ${sourceCount > 0 ? 'wfb-chip-on' : 'wfb-chip-off'}`}>
-              {sourceCount} source{sourceCount !== 1 ? 's' : ''}
+              {sourceCount} {sourceCount === 1 ? 'source' : 'sources'}
             </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M13 6l6 6-6 6" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span className={`wfb-chip ${actionCount > 0 ? 'wfb-chip-on' : 'wfb-chip-off'}`}>
-              {actionCount} action{actionCount !== 1 ? 's' : ''}
+              {actionCount} {actionCount === 1 ? 'action' : 'actions'}
             </span>
           </div>
 
           {!canRun && (
-            <span className="text-xs text-white/25 hidden sm:block">Add a source + action to run</span>
+            <span className="text-xs text-white/25 hidden sm:block">{t('addSourceHint')}</span>
           )}
 
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!canRun || running}
-            onClick={runWorkflow}
-          >
+          <Button variant="primary" size="sm" disabled={!canRun || running} onClick={runWorkflow}>
             {running ? (
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-3 border border-black/30 border-t-black/80 rounded-full animate-spin" />
-                Running…
+                {t('running')}
               </span>
-            ) : '▶ Run now'}
+            ) : t('runNow')}
           </Button>
 
           <UserButton />
@@ -515,19 +551,15 @@ export default function WorkflowBuilder() {
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{ padding: 0.35, maxZoom: 1 }}
-          deleteKeyCode="Delete"
+          deleteKeyCode={['Delete', 'Backspace']}
           minZoom={0.2}
           maxZoom={1.5}
           style={{ background: 'transparent' }}
         >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={28}
-            size={1}
-            color="rgba(255,255,255,0.05)"
-          />
+          <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgba(255,255,255,0.05)" />
           <Controls className="rf-controls" showInteractive={false} />
 
           {/* Add node button */}
@@ -536,7 +568,7 @@ export default function WorkflowBuilder() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Add node
+              {t('addNode')}
             </button>
           </Panel>
 
@@ -545,7 +577,7 @@ export default function WorkflowBuilder() {
             <Panel position="bottom-right" style={{ marginBottom: 24, marginRight: 16 }}>
               <div className="wfb-run-log">
                 <div className="wfb-log-header">
-                  <span>Run log</span>
+                  <span>{t('runLog')}</span>
                   <button className="wfb-log-clear" onClick={() => setLog([])}>✕</button>
                 </div>
                 <div className="wfb-log-entries">
@@ -560,16 +592,16 @@ export default function WorkflowBuilder() {
             </Panel>
           )}
 
-          {/* Empty state hint */}
+          {/* Empty state */}
           {workflow.nodes.length === 0 && (
             <Panel position="top-center" style={{ marginTop: 120 }}>
               <div className="wfb-empty-hint">
-                <p className="text-white/30 text-sm mb-3">Drop your first node to start building</p>
+                <p className="text-white/30 text-sm mb-3">{t('emptyHint')}</p>
                 <button className="wfb-add-btn" onClick={() => setShowPicker(true)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                     <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  Add first node
+                  {t('addFirstNode')}
                 </button>
               </div>
             </Panel>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, SignInButton } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
 
@@ -10,6 +11,7 @@ import { Card } from './@/components/ui/card';
 function Navbar() {
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const t = useTranslations('nav');
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] bg-background/80 backdrop-blur-md">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -19,19 +21,19 @@ function Navbar() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="font-semibold text-white text-sm tracking-tight">ArbFlow</span>
-          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-mono-feature ml-1">BETA</span>
+          <span className="font-semibold text-white text-sm tracking-tight">{t('brand')}</span>
+          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-mono-feature ml-1">{t('beta')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">Nodes</a>
-          <a href="#how-it-works" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">How it works</a>
+          <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
+          <a href="#how-it-works" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('howItWorks')}</a>
           {isSignedIn ? (
             <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
-              Dashboard →
+              {t('dashboard')}
             </Button>
           ) : (
             <SignInButton mode="modal">
-              <Button variant="primary" size="sm">Get started</Button>
+              <Button variant="primary" size="sm">{t('getStarted')}</Button>
             </SignInButton>
           )}
         </div>
@@ -44,6 +46,7 @@ function Navbar() {
 function Hero() {
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const t = useTranslations('landing');
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
       {/* Grid background */}
@@ -56,35 +59,35 @@ function Hero() {
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-8 font-mono-feature">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse-dot" />
-          Kalshi + Polymarket automation
+          {t('badge')}
         </div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
-          Your edge in{' '}
-          <span className="gradient-text">prediction markets</span>,{' '}
-          <br className="hidden md:block" />
-          automated.
+          {t('heroTitle').split('prediction markets').map((part, i) =>
+            i === 0 ? (
+              <React.Fragment key={i}>
+                {part}<span className="gradient-text">prediction markets</span>
+              </React.Fragment>
+            ) : part
+          )}
         </h1>
 
         <p className="text-lg md:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Connect Kalshi and Polymarket to Discord alerts and email notifications.
-          Build workflows in minutes — no code required.
+          {t('heroSubtitle')}
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {isSignedIn ? (
             <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-              Open Dashboard →
+              {t('openDashboard')}
             </Button>
           ) : (
             <>
               <SignInButton mode="modal">
-                <Button variant="primary" size="lg">
-                  Start automating free
-                </Button>
+                <Button variant="primary" size="lg">{t('ctaPrimary')}</Button>
               </SignInButton>
               <Button variant="outline" size="lg" asChild>
-                <a href="#how-it-works">See how it works</a>
+                <a href="#how-it-works">{t('ctaSecondary')}</a>
               </Button>
             </>
           )}
@@ -183,18 +186,19 @@ const NODE_TYPES = [
 ];
 
 function NodesSection() {
+  const t = useTranslations('landing');
   return (
     <section id="nodes" className="section-border py-24 px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <div className="badge-teal inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-mono-feature mb-4">
-            4 nodes available
+            {t('nodesSectionBadge')}
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Everything you need to automate
+            {t('nodesSectionTitle')}
           </h2>
           <p className="text-white/50 max-w-lg mx-auto">
-            Connect market data sources to notification actions. More nodes coming soon.
+            {t('nodesSectionSubtitle')}
           </p>
         </div>
 
@@ -233,25 +237,11 @@ function NodesSection() {
 
 // ── How it works ──────────────────────────────────────────────────────────────
 function HowItWorks() {
+  const t = useTranslations('landing');
   const steps = [
-    {
-      n: '01',
-      title: 'Pick your source',
-      body: 'Choose Kalshi or Polymarket as your data source. Paste a market ticker or slug, set a price threshold.',
-      color: 'text-cyan-400',
-    },
-    {
-      n: '02',
-      title: 'Add actions',
-      body: 'Chain Discord webhooks and Gmail notifications. Use template variables to include live market data.',
-      color: 'text-blue-400',
-    },
-    {
-      n: '03',
-      title: 'Enable and forget',
-      body: 'Toggle your workflow live. ArbFlow polls the markets and fires alerts the moment your threshold is crossed.',
-      color: 'text-indigo-400',
-    },
+    { n: '01', title: t('step1Title'), body: t('step1Body'), color: 'text-cyan-400' },
+    { n: '02', title: t('step2Title'), body: t('step2Body'), color: 'text-blue-400' },
+    { n: '03', title: t('step3Title'), body: t('step3Body'), color: 'text-indigo-400' },
   ];
 
   return (
@@ -259,10 +249,10 @@ function HowItWorks() {
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Set up in under 3 minutes
+            {t('howItWorksTitle')}
           </h2>
           <p className="text-white/50 max-w-lg mx-auto">
-            No YAML, no JSON, no CLI. Just pick nodes and configure them.
+            {t('howItWorksSubtitle')}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

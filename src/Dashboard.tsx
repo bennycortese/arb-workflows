@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { useUser, UserButton } from '@clerk/nextjs';
+import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './@/components/ui/button';
 import { workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode } from './atoms';
@@ -18,11 +19,8 @@ const NODE_META: Record<string, { color: string; accent: string; label: string }
 
 // ─── Mini canvas ──────────────────────────────────────────────────────────────
 function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
-  const W = 240;
-  const H = 88;
-  const nodeW = 58;
-  const nodeH = 26;
-  const gapX = 22;
+  const t = useTranslations('dashboard');
+  const W = 240, H = 88, nodeW = 58, nodeH = 26, gapX = 22;
   const y = (H - nodeH) / 2;
   const totalW = nodes.length * nodeW + Math.max(0, nodes.length - 1) * gapX;
   const startX = Math.max(8, (W - totalW) / 2);
@@ -33,7 +31,7 @@ function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <span>Empty workflow</span>
+        <span>{t('noNodes')}</span>
       </div>
     );
   }
@@ -55,21 +53,16 @@ function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
                 <line
                   x1={x - gapX + 3} y1={y + nodeH / 2}
                   x2={x - 3}        y2={y + nodeH / 2}
-                  stroke="rgba(255,255,255,0.2)"
-                  strokeWidth="1.5"
-                  markerEnd="url(#arrowhead)"
+                  stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)"
                 />
               )}
               <rect x={x} y={y} width={nodeW} height={nodeH} rx={7}
                 fill={meta.accent} stroke={meta.color} strokeWidth="1" strokeOpacity={0.6} />
               <text
                 x={x + nodeW / 2} y={y + nodeH / 2 + 4}
-                textAnchor="middle"
-                fill={meta.color}
-                fontSize="7.5"
-                fontWeight="700"
-                fontFamily="JetBrains Mono, Fira Code, monospace"
-                letterSpacing="0.8"
+                textAnchor="middle" fill={meta.color}
+                fontSize="7.5" fontWeight="700"
+                fontFamily="Inter, -apple-system, sans-serif" letterSpacing="0.8"
               >
                 {meta.label.toUpperCase()}
               </text>
@@ -77,13 +70,8 @@ function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
           );
         })}
         {nodes.length > 4 && (
-          <text
-            x={W - 6} y={y + nodeH / 2 + 4}
-            textAnchor="end"
-            fill="rgba(255,255,255,0.25)"
-            fontSize="8"
-            fontFamily="JetBrains Mono, monospace"
-          >
+          <text x={W - 6} y={y + nodeH / 2 + 4} textAnchor="end"
+            fill="rgba(255,255,255,0.25)" fontSize="8" fontFamily="Inter, sans-serif">
             +{nodes.length - 4}
           </text>
         )}
@@ -99,20 +87,19 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
   onToggle: () => void;
   onOpen: () => void;
 }) {
-  const isError  = workflow.lastStatus === 'error';
-  const isLive   = workflow.enabled && !isError;
+  const t = useTranslations('dashboard');
+  const isError = workflow.lastStatus === 'error';
+  const isLive  = workflow.enabled && !isError;
 
   return (
     <div className="workflow-card group" onClick={onOpen}>
-      {/* Canvas preview */}
       <div className="wf-canvas-area">
         <MiniCanvas nodes={workflow.nodes} />
         <span className={`wf-status-badge ${isError ? 'badge-error' : isLive ? 'badge-live' : 'badge-paused'}`}>
-          {isError ? 'Error' : isLive ? 'Live' : 'Paused'}
+          {isError ? t('statusError') : isLive ? t('statusLive') : t('statusPaused')}
         </span>
       </div>
 
-      {/* Info */}
       <div className="wf-card-body">
         <div className="flex items-center justify-between gap-2">
           <h3 className="wf-card-name group-hover:text-cyan-300 transition-colors">
@@ -122,7 +109,7 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
             <button
               onClick={onToggle}
               className={`wf-toggle ${workflow.enabled ? 'wf-toggle-on' : 'wf-toggle-off'}`}
-              title={workflow.enabled ? 'Disable' : 'Enable'}
+              title={workflow.enabled ? t('disableWorkflow') : t('enableWorkflow')}
             >
               <span className={`wf-toggle-knob ${workflow.enabled ? 'knob-on' : 'knob-off'}`} />
             </button>
@@ -130,13 +117,15 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
         </div>
         <div className="flex items-center justify-between mt-1.5">
           <span className="wf-card-meta">
-            {workflow.nodes.length === 0 ? 'No nodes' : `${workflow.nodes.length} node${workflow.nodes.length !== 1 ? 's' : ''}`}
+            {workflow.nodes.length === 0
+              ? t('noNodes')
+              : `${workflow.nodes.length} node${workflow.nodes.length !== 1 ? 's' : ''}`}
             {workflow.lastRun ? ` · ${timeAgo(workflow.lastRun)}` : ''}
           </span>
           <button
             onClick={e => { e.stopPropagation(); onDelete(); }}
             className="wf-delete-btn"
-            title="Delete workflow"
+            title={t('deleteWorkflow')}
           >
             ×
           </button>
@@ -161,12 +150,14 @@ function NewWorkflowModal({ onClose, onCreate }: {
   onClose: () => void;
   onCreate: (name: string) => void;
 }) {
+  const t = useTranslations('dashboard');
+  const tc = useTranslations('common');
   const [name, setName] = useState('');
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-panel" onClick={e => e.stopPropagation()}>
-        <h2 className="text-white font-semibold text-base mb-1">New workflow</h2>
-        <p className="text-white/40 text-sm mb-4">Give your automation a name to get started.</p>
+        <h2 className="text-white font-semibold text-base mb-1">{t('newWorkflowModalTitle')}</h2>
+        <p className="text-white/40 text-sm mb-4">{t('newWorkflowModalSubtitle')}</p>
         <input
           type="text"
           autoFocus
@@ -176,13 +167,13 @@ function NewWorkflowModal({ onClose, onCreate }: {
             if (e.key === 'Enter') onCreate(name.trim() || 'New Workflow');
             if (e.key === 'Escape') onClose();
           }}
-          placeholder="e.g. BTC > $60k → Discord"
+          placeholder={t('newWorkflowPlaceholder')}
           className="mb-4"
         />
         <div className="flex gap-2 justify-end">
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>{tc('cancel')}</Button>
           <Button variant="primary" size="sm" onClick={() => onCreate(name.trim() || 'New Workflow')}>
-            Create workflow
+            {t('createWorkflow')}
           </Button>
         </div>
       </div>
@@ -192,6 +183,7 @@ function NewWorkflowModal({ onClose, onCreate }: {
 
 // ─── Empty state ───────────────────────────────────────────────────────────────
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const t = useTranslations('dashboard');
   return (
     <div className="empty-state">
       <div className="empty-icon">
@@ -199,12 +191,12 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
           <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <h3 className="text-white font-semibold text-lg mb-2">No workflows yet</h3>
+      <h3 className="text-white font-semibold text-lg mb-2">{t('emptyTitle')}</h3>
       <p className="text-white/40 text-sm mb-6 max-w-xs text-center leading-relaxed">
-        Build your first automation — track Kalshi and Polymarket prices and trigger alerts anywhere.
+        {t('emptySubtitle')}
       </p>
       <Button variant="primary" onClick={onCreate}>
-        Create your first workflow
+        {t('emptyAction')}
       </Button>
     </div>
   );
@@ -214,6 +206,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
 export default function Dashboard() {
   const { user } = useUser();
   const router = useRouter();
+  const t = useTranslations('dashboard');
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [, setActiveId] = useAtom(activeWorkflowIdAtom);
   const [creating, setCreating] = useState(false);
@@ -250,10 +243,10 @@ export default function Dashboard() {
     : workflows;
 
   const stats = [
-    { label: 'Workflows', value: workflows.length },
-    { label: 'Active',    value: workflows.filter(w => w.enabled).length },
-    { label: 'Nodes',     value: workflows.reduce((a, w) => a + w.nodes.length, 0) },
-    { label: 'Markets',   value: workflows.reduce((a, w) => a + w.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket').length, 0) },
+    { label: t('statWorkflows'), value: workflows.length },
+    { label: t('statActive'),    value: workflows.filter(w => w.enabled).length },
+    { label: t('statNodes'),     value: workflows.reduce((a, w) => a + w.nodes.length, 0) },
+    { label: t('statMarkets'),   value: workflows.reduce((a, w) => a + w.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket').length, 0) },
   ];
 
   return (
@@ -277,7 +270,7 @@ export default function Dashboard() {
               <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
               <rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/>
             </svg>
-            <span>Workflows</span>
+            <span>{t('title')}</span>
           </button>
         </nav>
 
@@ -288,11 +281,10 @@ export default function Dashboard() {
 
       {/* ── Main ── */}
       <div className="db-main">
-        {/* Topbar */}
         <header className="db-topbar">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <span className="db-topbar-title">
-              {user?.firstName ? `${user.firstName}'s workflows` : 'Workflows'}
+              {user?.firstName ? `${user.firstName}'s workflows` : t('title')}
             </span>
             <div className="db-search-box">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-white/30 flex-shrink-0">
@@ -301,7 +293,7 @@ export default function Dashboard() {
               </svg>
               <input
                 type="text"
-                placeholder="Search workflows…"
+                placeholder={t('searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="db-search-input"
@@ -309,11 +301,10 @@ export default function Dashboard() {
             </div>
           </div>
           <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-            + New workflow
+            {t('newWorkflow')}
           </Button>
         </header>
 
-        {/* Stats strip */}
         {workflows.length > 0 && (
           <div className="db-stats-strip">
             {stats.map(s => (
@@ -325,13 +316,14 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Canvas */}
         <div className="db-canvas">
           {workflows.length === 0 ? (
             <EmptyState onCreate={() => setCreating(true)} />
           ) : filtered.length === 0 ? (
             <div className="empty-state">
-              <p className="text-white/40 text-sm">No workflows match "{search}"</p>
+              <p className="text-white/40 text-sm">
+                {t('noResults', { search })}
+              </p>
             </div>
           ) : (
             <div className="wf-grid">
@@ -349,7 +341,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Modal */}
       {creating && (
         <NewWorkflowModal
           onClose={() => setCreating(false)}
