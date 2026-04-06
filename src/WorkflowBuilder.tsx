@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAtom } from 'jotai';
 import { useTranslations } from 'next-intl';
@@ -84,41 +84,77 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
   );
 }
 
-// ── Custom deletable edge ─────────────────────────────────────────────────────
+// ── Custom draggable + deletable edge ────────────────────────────────────────
 function DeletableEdge({
   id,
   sourceX, sourceY, targetX, targetY,
   sourcePosition, targetPosition,
-  selected,
+  selected, data,
 }: EdgeProps) {
-  const { deleteElements } = useReactFlow();
+  const { deleteElements, screenToFlowPosition, setEdges } = useReactFlow();
   const [hovered, setHovered] = useState(false);
+  const isDragging = useRef(false);
   const t = useTranslations('builder');
 
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
-    borderRadius: 14,
-  });
+  const waypoint = (data as any)?.waypoint as { x: number; y: number } | undefined;
+
+  // Quadratic bezier through waypoint, or smoothstep when straight
+  let edgePath: string;
+  let midX: number;
+  let midY: number;
+  if (waypoint) {
+    edgePath = `M ${sourceX} ${sourceY} Q ${waypoint.x} ${waypoint.y} ${targetX} ${targetY}`;
+    midX = waypoint.x;
+    midY = waypoint.y;
+  } else {
+    const [p] = getSmoothStepPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition, borderRadius: 14 });
+    edgePath = p;
+    midX = (sourceX + targetX) / 2;
+    midY = (sourceY + targetY) / 2;
+  }
 
   const isHighlighted = selected || hovered;
-  const stroke = isHighlighted ? 'rgba(6,182,212,0.7)' : 'rgba(255,255,255,0.2)';
+  const stroke = isHighlighted ? 'rgba(6,182,212,0.75)' : 'rgba(255,255,255,0.22)';
 
-  return (
+  // Drag the path to bend it
+  const onPathMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    isDragging.current = true;
+
+    const onMove = (me: MouseEvent) => {
+      if (!isDragging.current) return;
+      const pos = screenToFlowPosition({ x: me.clientX, y: me.clientY });
+      setEdges(eds => eds.map(edge =>
+        edge.id === id ? { ...edge, data: { ...edge.data, waypoint: pos } } : edge
+      ));
+    };
+    const onUp = (me: MouseEvent) => {
+      isDragging.current = false;
+      const pos = screenToFlowPosition({ x: me.clientX, y: me.clientY });
+      (data as any)?.onWaypointChange?.(id, pos);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [id, data, screenToFlowPosition, setEdges]);
+
+return (
     <>
-      {/* Invisible fat hit area */}
+      {/* Fat invisible hit area for easy hover/click */}
       <path
         d={edgePath}
         fill="none"
         stroke="transparent"
-        strokeWidth={24}
+        strokeWidth={40}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        style={{ cursor: 'pointer' }}
+        onMouseDown={onPathMouseDown}
+        style={{ cursor: 'grab' }}
       />
       <BaseEdge
         path={edgePath}
-        style={{ stroke, strokeWidth: isHighlighted ? 2.5 : 2, transition: 'stroke 0.15s, stroke-width 0.15s' }}
+        style={{ stroke, strokeWidth: isHighlighted ? 2.5 : 1.8, transition: 'stroke 0.15s, stroke-width 0.15s' }}
         markerEnd={`url(#arrow-${id})`}
       />
       <defs>
@@ -126,20 +162,23 @@ function DeletableEdge({
           <path d="M0 0 L0 6 L9 3 z" fill={stroke} style={{ transition: 'fill 0.15s' }} />
         </marker>
       </defs>
+
+      {/* Delete button at midpoint — only shows on hover/select */}
       <EdgeLabelRenderer>
         <div
           style={{
             position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            transform: `translate(-50%, -50%) translate(${midX}px, ${midY}px)`,
             pointerEvents: 'all',
           }}
-          className={`nodrag nopan edge-delete-wrap ${isHighlighted ? 'edge-delete-visible' : ''}`}
+          className={`nodrag nopan edge-mid-wrap ${isHighlighted ? 'edge-mid-visible' : ''}`}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
           <button
             className="edge-delete-btn"
-            onClick={() => deleteElements({ edges: [{ id }] })}
+            onClick={e => { e.stopPropagation(); deleteElements({ edges: [{ id }] }); }}
+            onDoubleClick={e => e.stopPropagation()}
             title={t('deleteConnection')}
           >
             ×
@@ -314,12 +353,15 @@ const nodeTypes = {
 };
 
 // ── Edge factory ──────────────────────────────────────────────────────────────
-function makeEdge(source: string, target: string): RFEdge {
+type WaypointCb = (edgeId: string, wp: { x: number; y: number } | undefined) => void;
+
+function makeEdge(source: string, target: string, onWaypointChange?: WaypointCb, waypoint?: { x: number; y: number }): RFEdge {
   return {
     id: `e-${source}-${target}`,
     source,
     target,
     type: 'deletable',
+    data: { onWaypointChange, waypoint },
   };
 }
 
@@ -360,6 +402,15 @@ export default function WorkflowBuilder() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
 
+  // Persist waypoint changes from edge drag → jotai
+  const onWaypointChange = useCallback((edgeId: string, wp: { x: number; y: number } | undefined) => {
+    setWorkflows(prev => prev.map(w =>
+      w.id === workflowId
+        ? { ...w, edges: (w.edges ?? []).map(e => e.id === edgeId ? { ...e, waypoint: wp } : e) }
+        : w
+    ));
+  }, [workflowId, setWorkflows]);
+
   // Init React Flow state from jotai on workflow load
   useEffect(() => {
     if (!workflow) return;
@@ -369,7 +420,9 @@ export default function WorkflowBuilder() {
       position: n.position ?? defaultPosition(n, workflow.nodes),
       data: { workflowId },
     })));
-    setRFEdges((workflow.edges ?? []).map(e => makeEdge(e.source, e.target)));
+    setRFEdges((workflow.edges ?? []).map(e =>
+      makeEdge(e.source, e.target, onWaypointChange, e.waypoint)
+    ));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workflowId]);
 
@@ -414,14 +467,14 @@ export default function WorkflowBuilder() {
 
   // New connection drawn by user
   const onConnect = useCallback((connection: Connection) => {
-    const edge = makeEdge(connection.source!, connection.target!);
+    const edge = makeEdge(connection.source!, connection.target!, onWaypointChange);
     setRFEdges(eds => addEdge(edge, eds));
     setWorkflows(prev => prev.map(w =>
       w.id === workflowId
         ? { ...w, edges: [...(w.edges ?? []), { id: edge.id, source: connection.source!, target: connection.target! }] }
         : w
     ));
-  }, [workflowId, setWorkflows, setRFEdges]);
+  }, [workflowId, setWorkflows, setRFEdges, onWaypointChange]);
 
   // Add a node from the picker
   function addNode(type: NodeType) {

@@ -42,6 +42,7 @@ export interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  waypoint?: { x: number; y: number };
 }
 
 export interface Workflow {
