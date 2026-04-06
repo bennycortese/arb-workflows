@@ -846,7 +846,7 @@
 
 /* Connection line (while drawing) */
 .react-flow__connection-path {
-  stroke: rgba(6, 182, 212, 0.5);
+  stroke: rgba(6, 182, 212, 0.7);
   stroke-width: 2;
 }
 
@@ -874,18 +874,28 @@
 }
 .rf-controls .react-flow__controls-button svg { fill: currentColor !important; }
 
-/* ── Handles — large, easy to grab ──────────────────────────────────────── */
+/* ── Handles — n8n / FigJam style ────────────────────────────────────────── */
 .cn-handle.react-flow__handle {
-  width: 16px !important;
-  height: 16px !important;
-  border: 2.5px solid rgba(7, 11, 20, 0.85) !important;
+  width: 10px !important;
+  height: 10px !important;
   border-radius: 50% !important;
-  transition: transform 0.12s, box-shadow 0.12s;
+  border: 2px solid rgba(7, 11, 20, 0.85) !important;
   cursor: crosshair;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transform: scale(0.8);
 }
+/* Show handles when hovering the node */
+.react-flow__node:hover .cn-handle.react-flow__handle,
+.react-flow__node.selected .cn-handle.react-flow__handle {
+  opacity: 1;
+  transform: scale(1);
+}
+/* Grow on direct handle hover */
 .cn-handle.react-flow__handle:hover {
-  transform: scale(1.35);
-  box-shadow: 0 0 0 4px rgba(255,255,255,0.1);
+  opacity: 1 !important;
+  transform: scale(1.5) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.15) !important;
 }
 
 /* ── Edge delete button ──────────────────────────────────────────────────── */
