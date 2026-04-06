@@ -278,22 +278,21 @@ function HowItWorks() {
 function CTA() {
   const { isSignedIn } = useUser();
   const router = useRouter();
+  const t = useTranslations('landing');
   return (
     <section className="section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          Start automating your edge
+          {t('ctaSectionTitle')}
         </h2>
-        <p className="text-white/50 mb-8">
-          Free to use. No credit card required.
-        </p>
+        <p className="text-white/50 mb-8">{t('ctaSectionSubtitle')}</p>
         {isSignedIn ? (
           <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-            Open Dashboard →
+            {t('openDashboard')}
           </Button>
         ) : (
           <SignInButton mode="modal">
-            <Button variant="primary" size="lg">Get started for free</Button>
+            <Button variant="primary" size="lg">{t('ctaFree')}</Button>
           </SignInButton>
         )}
       </div>
@@ -303,6 +302,8 @@ function CTA() {
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 function Footer() {
+  const t = useTranslations('landing');
+  const tn = useTranslations('nav');
   return (
     <footer className="section-border py-10 px-6">
       <div className="max-w-[1200px] mx-auto flex items-center justify-between">
@@ -312,9 +313,9 @@ function Footer() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="text-sm text-white/40">ArbFlow</span>
+          <span className="text-sm text-white/40">{tn('brand')}</span>
         </div>
-        <p className="text-xs text-white/25">Not financial advice. Always DYOR.</p>
+        <p className="text-xs text-white/25">{t('footerDisclaimer')}</p>
       </div>
     </footer>
   );

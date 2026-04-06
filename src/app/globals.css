@@ -47,7 +47,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -847,8 +847,47 @@
 }
 .rf-controls .react-flow__controls-button svg { fill: currentColor !important; }
 
-/* Handle hover ring */
-.react-flow__handle:hover {
-  transform: scale(1.3);
-  transition: transform 0.12s;
+/* ── Handles — large, easy to grab ──────────────────────────────────────── */
+.cn-handle.react-flow__handle {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2.5px solid rgba(7, 11, 20, 0.85) !important;
+  border-radius: 50% !important;
+  transition: transform 0.12s, box-shadow 0.12s;
+  cursor: crosshair;
+}
+.cn-handle.react-flow__handle:hover {
+  transform: scale(1.35);
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.1);
+}
+
+/* ── Edge delete button ──────────────────────────────────────────────────── */
+.edge-delete-wrap {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.edge-delete-visible {
+  opacity: 1;
+}
+
+.edge-delete-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1a1f2e;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.edge-delete-btn:hover {
+  background: rgba(248, 113, 113, 0.2);
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #f87171;
 }

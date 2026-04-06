@@ -10,7 +10,7 @@ import {
   ReactFlow,
   Background, BackgroundVariant, Controls,
   addEdge, useNodesState, useEdgesState, useReactFlow,
-  Handle, Position, MarkerType, Panel,
+  Handle, Position, Panel,
   BaseEdge, EdgeLabelRenderer, getSmoothStepPath,
   type Node as RFNode,
   type Edge as RFEdge,
@@ -119,13 +119,13 @@ function DeletableEdge({
       <BaseEdge
         path={edgePath}
         style={{ stroke, strokeWidth: isHighlighted ? 2.5 : 2, transition: 'stroke 0.15s, stroke-width 0.15s' }}
-        markerEnd={{
-          type: MarkerType.ArrowClosed,
-          color: stroke,
-          width: 16,
-          height: 16,
-        }}
+        markerEnd={`url(#arrow-${id})`}
       />
+      <defs>
+        <marker id={`arrow-${id}`} markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0 0 L0 6 L9 3 z" fill={stroke} style={{ transition: 'fill 0.15s' }} />
+        </marker>
+      </defs>
       <EdgeLabelRenderer>
         <div
           style={{

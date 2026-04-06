@@ -82,6 +82,7 @@
   },
   "nodes": {
     "removeNode": "Remove node",
+    "dragToConnect": "Drag to connect",
     "kalshiSource": "SOURCE",
     "polymarketSource": "SOURCE",
     "discordAction": "ACTION",
