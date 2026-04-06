@@ -224,9 +224,16 @@ function CanvasNodeShell({
         </div>
       </div>
 
-      {/* Config panel */}
+      {/* Config panel — draggable from any non-interactive area */}
       {expanded && (
-        <div className="cn-config nodrag nopan">
+        <div
+          className="cn-config"
+          onMouseDown={e => {
+            if ((e.target as HTMLElement).closest('input, textarea, select, button, a, label, [role="option"]')) {
+              e.stopPropagation(); // don't start a node drag when clicking inputs/buttons
+            }
+          }}
+        >
           {configPanel}
         </div>
       )}
