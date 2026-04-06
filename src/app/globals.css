@@ -58,8 +58,15 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Mono kept only for actual data values: prices, tickers, IDs, log timestamps */
   .font-mono-feature {
-    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  }
+  /* Tabular Inter for numeric UI (stats, chips) */
+  .font-tabular {
+    font-family: var(--font-inter), 'Inter', sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   /* ── Gradient text — teal to blue (Kalshi → Polymarket) ── */
@@ -342,7 +349,8 @@
 .db-stat-value {
   font-size: 15px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
   color: #22d3ee;
   line-height: 1;
 }
@@ -462,7 +470,8 @@
 .wf-card-meta {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.28);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 .wf-delete-btn {
@@ -628,8 +637,9 @@
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 99px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  letter-spacing: 0.2px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 .wfb-chip-on {
   background: rgba(6, 182, 212, 0.12);
@@ -703,8 +713,8 @@
   font-size: 11px;
   font-weight: 600;
   color: rgba(255,255,255,0.35);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  letter-spacing: 0.8px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   border-bottom: 1px solid rgba(255,255,255,0.05);
   flex-shrink: 0;
@@ -726,9 +736,9 @@
   display: flex;
   gap: 10px;
   padding: 3px 14px;
-  font-size: 11.5px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  line-height: 1.5;
+  font-size: 12px;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  line-height: 1.55;
 }
 .wfb-log-ts { color: rgba(255,255,255,0.2); flex-shrink: 0; }
 .log-info    { color: rgba(255,255,255,0.55); }

@@ -22,7 +22,7 @@ function Navbar() {
             </svg>
           </div>
           <span className="font-semibold text-white text-sm tracking-tight">{t('brand')}</span>
-          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-mono-feature ml-1">{t('beta')}</span>
+          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1">{t('beta')}</span>
         </div>
         <div className="flex items-center gap-2">
           <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
@@ -57,7 +57,7 @@ function Hero() {
       <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
 
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-8 font-mono-feature">
+        <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-8 font-semibold tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse-dot" />
           {t('badge')}
         </div>
@@ -96,9 +96,9 @@ function Hero() {
         {/* Mini market ticker */}
         <div className="mt-16 flex items-center justify-center gap-4 flex-wrap">
           {[
-            { label: 'BTC > $100k by EOY', price: '72¢', change: '+3', color: 'text-emerald-400' },
-            { label: 'Fed rate cut Sept', price: '48¢', change: '-2', color: 'text-red-400' },
-            { label: 'Recession 2025', price: '31¢', change: '+1', color: 'text-emerald-400' },
+            { label: 'Fed rate cut by June', price: '58¢', change: '+4', color: 'text-emerald-400' },
+            { label: 'US recession in 2025', price: '35¢', change: '+2', color: 'text-emerald-400' },
+            { label: 'S&P 500 above 5,500 EOY', price: '44¢', change: '-3', color: 'text-red-400' },
           ].map(m => (
             <div key={m.label} className="glass-card px-4 py-2.5 rounded-lg flex items-center gap-3">
               <span className="text-xs text-white/40">{m.label}</span>
@@ -191,7 +191,7 @@ function NodesSection() {
     <section id="nodes" className="section-border py-24 px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
-          <div className="badge-teal inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-mono-feature mb-4">
+          <div className="badge-teal inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold tracking-wide mb-4">
             {t('nodesSectionBadge')}
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -212,7 +212,7 @@ function NodesSection() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-white">{node.label}</span>
-                    <span className={`${node.badgeClass} text-[10px] px-1.5 py-0.5 rounded font-mono-feature`}>
+                    <span className={`${node.badgeClass} text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide`}>
                       {node.role.toUpperCase()}
                     </span>
                   </div>
@@ -262,7 +262,7 @@ function HowItWorks() {
                 <div className="hidden md:block absolute top-5 left-[calc(100%+12px)] right-0 h-px bg-white/[0.06] z-10" style={{ width: 'calc(100% - 32px)', left: 'calc(100% + 16px)' }} />
               )}
               <div className="glass-card rounded-xl p-6">
-                <div className={`font-mono-feature text-4xl font-bold mb-4 ${step.color} opacity-40`}>{step.n}</div>
+                <div className={`text-4xl font-bold mb-4 tabular-nums ${step.color} opacity-40`}>{step.n}</div>
                 <h3 className="font-semibold text-white mb-2">{step.title}</h3>
                 <p className="text-sm text-white/50 leading-relaxed">{step.body}</p>
               </div>

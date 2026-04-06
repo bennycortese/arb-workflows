@@ -15,22 +15,22 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs text-white/50 mb-1.5 font-mono-feature uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
           Market Slug
         </label>
         <input
           type="text"
           value={config.marketSlug}
           onChange={e => set('marketSlug', e.target.value)}
-          placeholder="will-trump-win-2024"
+          placeholder="will-fed-cut-rates-in-june-2025"
         />
         <p className="mt-1 text-xs text-white/30">
-          Find the slug in the Polymarket URL: polymarket.com/event/<span className="text-blue-400">slug</span>
+          From the Polymarket URL: polymarket.com/event/<span className="text-blue-400 font-mono">slug</span>
         </p>
       </div>
 
       <div>
-        <label className="block text-xs text-white/50 mb-1.5 font-mono-feature uppercase tracking-wider">
+        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
           Outcome Index
         </label>
         <input
@@ -42,13 +42,13 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
           placeholder="0"
         />
         <p className="mt-1 text-xs text-white/30">
-          0 = first outcome (Yes), 1 = second outcome (No)
+          0 = Yes, 1 = No (check market for multi-outcome order)
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-white/50 mb-1.5 font-mono-feature uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
             Price Threshold
           </label>
           <input
@@ -62,7 +62,7 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
           />
         </div>
         <div>
-          <label className="block text-xs text-white/50 mb-1.5 font-mono-feature uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
             Direction
           </label>
           <select
@@ -79,7 +79,7 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
       <div className="rounded-lg bg-blue-500/5 border border-blue-500/15 p-3">
         <p className="text-xs text-blue-400/80">
           Triggers when outcome #{config.outcomeIndex || '0'} of{' '}
-          <span className="font-semibold">{config.marketSlug || 'market'}</span> is{' '}
+          <span className="font-semibold font-mono">{config.marketSlug || 'market'}</span> is{' '}
           <span className="font-semibold">{config.direction}</span>{' '}
           <span className="font-mono font-semibold">{(parseFloat(config.priceThreshold) * 100).toFixed(0)}¢</span>
         </p>
@@ -91,7 +91,7 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
 export function PolymarketNodeHeader() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+      <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="9" stroke="#60a5fa" strokeWidth="2"/>
           <path d="M12 3c0 0 4 3 4 9s-4 9-4 9" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
@@ -102,7 +102,7 @@ export function PolymarketNodeHeader() {
       <div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white">Polymarket</span>
-          <span className="badge-polymarket text-xs px-1.5 py-0.5 rounded font-mono-feature">SOURCE</span>
+          <span className="badge-polymarket text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide">SOURCE</span>
         </div>
         <p className="text-xs text-white/40">Read prediction market prices</p>
       </div>

@@ -71,13 +71,13 @@ export const defaultPolymarketConfig: PolymarketConfig = {
 
 export const defaultDiscordConfig: DiscordConfig = {
   webhookUrl: '',
-  messageTemplate: '📊 Alert: {{market}} is at {{price}} ({{direction}} threshold)',
+  messageTemplate: 'Alert: {{market}} crossed {{threshold}} — now at {{price}} on {{platform}}',
 };
 
 export const defaultGmailConfig: GmailConfig = {
   toEmail: '',
-  subject: '📈 ArbFlow Alert: {{market}}',
-  bodyTemplate: 'Market: {{market}}\nCurrent price: {{price}}\nThreshold: {{threshold}}\n\nView on {{platform}}',
+  subject: 'Market alert: {{market}}',
+  bodyTemplate: 'Market: {{market}}\nCurrent price: {{price}}\nThreshold: {{threshold}}\nDirection: {{direction}}\nPlatform: {{platform}}',
 };
 
 function makeDefaultConfig(type: NodeType): NodeConfig {

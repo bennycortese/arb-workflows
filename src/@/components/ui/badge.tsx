@@ -9,7 +9,7 @@ function Badge({ className, variant = 'muted', ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium font-mono-feature",
+        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide",
         {
           'badge-kalshi': variant === 'kalshi',
           'badge-polymarket': variant === 'polymarket',
