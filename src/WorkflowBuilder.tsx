@@ -322,12 +322,42 @@ function PolymarketCanvasNode({ id, data }: NodeProps) {
 function DiscordCanvasNode({ id, data }: NodeProps) {
   const workflowId = (data as { workflowId: string }).workflowId;
   const { node, updateConfig } = useNodeConfig(id, workflowId);
+  const [workflows] = useAtom(workflowsAtom);
+  const workflow = workflows.find(w => w.id === workflowId);
+
   if (!node) return null;
+
+  const sourceNode = workflow?.nodes.find(n => n.type === 'kalshi' || n.type === 'polymarket');
+  let previewVars: Record<string, string> | undefined;
+  if (sourceNode?.type === 'kalshi') {
+    const cfg = sourceNode.config as KalshiConfig;
+    const t = (parseFloat(cfg.priceThreshold || '0.5') * 100).toFixed(0);
+    previewVars = {
+      platform: 'Kalshi',
+      market: cfg.marketTicker || 'MARKET',
+      price: '??¢',
+      threshold: `${t}¢`,
+      direction: cfg.direction,
+      url: cfg.marketTicker ? `https://kalshi.com/markets/${cfg.marketTicker}` : '',
+    };
+  } else if (sourceNode?.type === 'polymarket') {
+    const cfg = sourceNode.config as PolymarketConfig;
+    const t = (parseFloat(cfg.priceThreshold || '0.5') * 100).toFixed(0);
+    previewVars = {
+      platform: 'Polymarket',
+      market: cfg.marketSlug || 'market-slug',
+      price: '??¢',
+      threshold: `${t}¢`,
+      direction: cfg.direction,
+      url: cfg.marketSlug ? `https://polymarket.com/event/${cfg.marketSlug}` : '',
+    };
+  }
+
   return (
     <CanvasNodeShell
       id={id} isSource={false} accentColor="#818cf8"
       header={<DiscordNodeHeader />}
-      configPanel={<DiscordNodeConfig config={node.config as DiscordConfig} onChange={updateConfig} />}
+      configPanel={<DiscordNodeConfig config={node.config as DiscordConfig} onChange={updateConfig} previewVars={previewVars} />}
     />
   );
 }

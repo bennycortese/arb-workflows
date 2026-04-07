@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { fillTemplate } from '../../../../lib/template';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,13 +26,6 @@ interface RunResult {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fillTemplate(template: string, vars: Record<string, string>): string {
-  return Object.entries(vars).reduce(
-    (t, [k, v]) => t.replaceAll(`{{${k}}}`, v),
-    template
-  );
-}
 
 async function sendDiscord(webhookUrl: string, content: string): Promise<void> {
   const resp = await fetch(webhookUrl, {

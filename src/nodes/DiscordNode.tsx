@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { DiscordConfig } from '../atoms';
+import { fillTemplate, PREVIEW_VARS } from '../lib/template';
 
 interface Props {
   config: DiscordConfig;
   onChange: (config: DiscordConfig) => void;
+  previewVars?: Record<string, string>;
 }
 
-export function DiscordNodeConfig({ config, onChange }: Props) {
+export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
   const set = (key: keyof DiscordConfig, value: string) =>
     onChange({ ...config, [key]: value });
 
@@ -57,12 +59,7 @@ export function DiscordNodeConfig({ config, onChange }: Props) {
       <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/15 p-3">
         <p className="text-xs text-indigo-400/80 leading-relaxed">
           Preview: <span className="text-indigo-300">{
-            config.messageTemplate
-              .replace('{{market}}', 'Fed rate cut June')
-              .replace('{{price}}', '0.72')
-              .replace('{{threshold}}', '0.65')
-              .replace('{{direction}}', 'above')
-              .replace('{{platform}}', 'Polymarket')
+            fillTemplate(config.messageTemplate, previewVars ?? PREVIEW_VARS)
           }</span>
         </p>
       </div>
