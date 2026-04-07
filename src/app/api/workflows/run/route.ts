@@ -85,21 +85,24 @@ export async function POST(request: NextRequest) {
   for (const node of workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket')) {
     try {
       if (node.type === 'kalshi') {
-        const { marketTicker, apiKey, priceThreshold, direction } = node.config;
+        const { marketTicker, apiKey: nodeApiKey, priceThreshold, direction } = node.config;
+        const apiKey = nodeApiKey || process.env.KALSHI_API_KEY;
 
-        const url = `https://trading-api.kalshi.com/trade-api/v2/markets/${marketTicker}`;
+        const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${marketTicker.toUpperCase()}`;
+        console.log('[Kalshi] fetching', url, 'apiKey?', !!apiKey);
         const resp = await fetch(url, {
           headers: {
             accept: 'application/json',
-            ...(apiKey ? { Authorization: `Token ${apiKey}` } : {}),
+            ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
           },
-        });
+          cache: 'no-store',
+        }).catch((e: any) => { throw new Error(`fetch failed: ${e.message} — cause: ${JSON.stringify(e.cause)}`); });
 
-        if (!resp.ok) throw new Error(`Kalshi API ${resp.status}`);
+        if (!resp.ok) throw new Error(`Kalshi API ${resp.status}: ${await resp.text()}`);
 
-        const data = await resp.json() as { market?: { yes_bid?: number; title?: string } };
-        const price = data.market?.yes_bid ?? 0;
-        const priceFraction = price / 100;
+        const data = await resp.json() as { market?: { yes_bid_dollars?: string; title?: string } };
+        const price = parseFloat(data.market?.yes_bid_dollars ?? '0');
+        const priceFraction = price;
         const threshold = parseFloat(priceThreshold ?? '0.5');
         const title = data.market?.title ?? marketTicker;
 

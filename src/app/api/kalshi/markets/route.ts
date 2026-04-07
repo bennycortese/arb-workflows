@@ -7,11 +7,11 @@ export async function GET(request: NextRequest) {
 
     if (!ticker) return NextResponse.json({ error: 'ticker required' }, { status: 400 });
 
-    const url = `https://trading-api.kalshi.com/trade-api/v2/markets/${ticker}`;
+    const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${ticker.toUpperCase()}`;
     const response = await fetch(url, {
       headers: {
         accept: 'application/json',
-        ...(apiKey ? { Authorization: `Token ${apiKey}` } : {}),
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       },
     });
 
