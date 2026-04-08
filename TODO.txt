@@ -1,0 +1,6 @@
+Ok! We have workflows which we can run. Ideally we want to set    
+  up an entire job scheduler architecture. Can you read
+  https://freedium-mirror.cfd/https://medium.com/codetodeploy/syst  
+  em-design-design-a-job-scheduler-3df3e2773e99 and use ideas from  
+  DDIA to make a PLAN.md for executing on this work? Just make      
+  the plan for now, we can implement later.
