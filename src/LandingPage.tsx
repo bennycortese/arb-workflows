@@ -167,9 +167,9 @@ const NODE_TYPES = [
     features: ['Webhook integration', 'Custom message templates', 'Instant delivery'],
   },
   {
-    id: 'gmail',
-    label: 'Gmail',
-    badgeClass: 'badge-gmail',
+    id: 'email',
+    label: 'Email',
+    badgeClass: 'badge-email',
     role: 'Action',
     color: '#f87171',
     bg: 'bg-red-500/5',
@@ -181,7 +181,7 @@ const NODE_TYPES = [
       </svg>
     ),
     description: 'Email alerts with rich templates. Send to yourself or a team distribution list when thresholds are crossed.',
-    features: ['HTML email support', 'Subject + body templates', 'OAuth2 Gmail auth'],
+    features: ['Subject + body templates', 'Powered by AgentMail', 'Instant delivery'],
   },
 ];
 

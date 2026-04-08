@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { fillTemplate } from '../../../../lib/template';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'gmail';
+type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email';
 
 interface WorkflowNode {
   id: string;
@@ -37,20 +36,22 @@ async function sendDiscord(webhookUrl: string, content: string): Promise<void> {
 }
 
 async function sendEmail(to: string, subject: string, body: string): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+  const apiKey = process.env.AGENT_MAIL_API_KEY;
+  if (!apiKey) throw new Error('AGENT_MAIL_API_KEY not set in server env');
+
+  const resp = await fetch('https://api.agentmail.to/v0/inboxes/arbworflow@agentmail.to/messages/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ to, subject, text: body }),
   });
 
-  await transporter.sendMail({
-    from: process.env.GMAIL_USER,
-    to,
-    subject,
-    text: body,
-  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`AgentMail API ${resp.status}: ${errText}`);
+  }
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Step 2: Fire action nodes if threshold met ────────────────────────────
-  for (const node of workflow.nodes.filter(n => n.type === 'discord' || n.type === 'gmail')) {
+  for (const node of workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email')) {
     if (!thresholdMet) {
       results.push({ nodeId: node.id, type: node.type, status: 'skip', message: 'Skipped — no threshold was met' });
       continue;
@@ -177,14 +178,13 @@ export async function POST(request: NextRequest) {
         results.push({ nodeId: node.id, type: 'discord', status: 'ok', message: 'Message sent to Discord' });
       }
 
-      if (node.type === 'gmail') {
+      if (node.type === 'email') {
         const { toEmail, subject, bodyTemplate } = node.config;
         if (!toEmail) throw new Error('Recipient email not configured');
-        if (!process.env.GMAIL_USER) throw new Error('GMAIL_USER not set in server env');
         const subjectFilled = fillTemplate(subject ?? 'ArbFlow Alert', marketVars);
         const bodyFilled = fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', marketVars);
         await sendEmail(toEmail, subjectFilled, bodyFilled);
-        results.push({ nodeId: node.id, type: 'gmail', status: 'ok', message: `Email sent to ${toEmail}` });
+        results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail}` });
       }
     } catch (err: any) {
       results.push({ nodeId: node.id, type: node.type, status: 'error', message: err.message });

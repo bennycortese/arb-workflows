@@ -25,7 +25,7 @@ import '@xyflow/react/dist/style.css';
 import {
   workflowsAtom, activeWorkflowIdAtom,
   WorkflowNode, NodeType, createNode,
-  KalshiConfig, PolymarketConfig, DiscordConfig, GmailConfig, NodeConfig,
+  KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, NodeConfig,
 } from './atoms';
 import { KalshiNodeConfig, KalshiNodeHeader } from './nodes/KalshiNode';
 import { PolymarketNodeConfig, PolymarketNodeHeader } from './nodes/PolymarketNode';
@@ -37,7 +37,7 @@ const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source'
   { type: 'kalshi',     label: 'Kalshi',     desc: 'Read market prices',  role: 'source', color: '#4ade80' },
   { type: 'polymarket', label: 'Polymarket', desc: 'Read market prices',  role: 'source', color: '#60a5fa' },
   { type: 'discord',   label: 'Discord',    desc: 'Post to channel',      role: 'action', color: '#818cf8' },
-  { type: 'gmail',     label: 'Gmail',      desc: 'Send email',           role: 'action', color: '#f87171' },
+  { type: 'email',     label: 'Email',      desc: 'Send email',           role: 'action', color: '#f87171' },
 ];
 
 function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClose: () => void }) {
@@ -370,7 +370,7 @@ function GmailCanvasNode({ id, data }: NodeProps) {
     <CanvasNodeShell
       id={id} isSource={false} accentColor="#f87171"
       header={<GmailNodeHeader />}
-      configPanel={<GmailNodeConfig config={node.config as GmailConfig} onChange={updateConfig} />}
+      configPanel={<GmailNodeConfig config={node.config as EmailConfig} onChange={updateConfig} />}
     />
   );
 }
@@ -379,7 +379,7 @@ const nodeTypes = {
   kalshi:     KalshiCanvasNode,
   polymarket: PolymarketCanvasNode,
   discord:    DiscordCanvasNode,
-  gmail:      GmailCanvasNode,
+  email:      GmailCanvasNode,
 };
 
 // ── Edge factory ──────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ function defaultPosition(node: WorkflowNode, allNodes: WorkflowNode[]) {
   const peers = allNodes.filter(n =>
     isSource
       ? (n.type === 'kalshi' || n.type === 'polymarket')
-      : (n.type === 'discord' || n.type === 'gmail')
+      : (n.type === 'discord' || n.type === 'email')
   );
   const idx = peers.findIndex(n => n.id === node.id);
   return { x: isSource ? 80 : 560, y: 80 + Math.max(0, idx) * 420 };
@@ -513,7 +513,7 @@ export default function WorkflowBuilder() {
     const isSource = type === 'kalshi' || type === 'polymarket';
     const peers = workflow.nodes.filter(n =>
       isSource ? (n.type === 'kalshi' || n.type === 'polymarket')
-               : (n.type === 'discord' || n.type === 'gmail')
+               : (n.type === 'discord' || n.type === 'email')
     );
     const position = { x: isSource ? 80 : 560, y: 80 + peers.length * 420 };
     setWorkflows(prev => prev.map(w =>
@@ -531,7 +531,7 @@ export default function WorkflowBuilder() {
     const ts = () => new Date().toLocaleTimeString();
     const newLog: RunLogEntry[] = [];
     const sources = workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket');
-    const actions = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'gmail');
+    const actions = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email');
 
     if (!sources.length) { setLog([{ ts: ts(), message: t('noSourceError'), type: 'error' }]); return; }
     if (!actions.length) { setLog([{ ts: ts(), message: t('noActionError'), type: 'error' }]); return; }
@@ -581,7 +581,7 @@ export default function WorkflowBuilder() {
   }
 
   const sourceCount = workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket').length;
-  const actionCount = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'gmail').length;
+  const actionCount = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email').length;
   const canRun = sourceCount > 0 && actionCount > 0;
 
   return (

@@ -14,7 +14,7 @@ const NODE_META: Record<string, { color: string; accent: string; label: string }
   kalshi:     { color: '#10b981', accent: 'rgba(16,185,129,0.18)', label: 'Kalshi' },
   polymarket: { color: '#3b82f6', accent: 'rgba(59,130,246,0.18)', label: 'Poly' },
   discord:    { color: '#818cf8', accent: 'rgba(129,140,248,0.18)', label: 'Discord' },
-  gmail:      { color: '#f87171', accent: 'rgba(248,113,113,0.18)', label: 'Gmail' },
+  email:      { color: '#f87171', accent: 'rgba(248,113,113,0.18)', label: 'Email' },
 };
 
 // ─── Mini canvas ──────────────────────────────────────────────────────────────

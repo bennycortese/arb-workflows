@@ -1,7 +1,7 @@
 import { atom } from 'jotai';
 import { v4 as uuidv4 } from 'uuid';
 
-export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'gmail';
+export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email';
 
 export interface KalshiConfig {
   apiKey: string;
@@ -22,13 +22,13 @@ export interface DiscordConfig {
   messageTemplate: string;
 }
 
-export interface GmailConfig {
+export interface EmailConfig {
   toEmail: string;
   subject: string;
   bodyTemplate: string;
 }
 
-export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | GmailConfig;
+export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | EmailConfig;
 
 export interface WorkflowNode {
   id: string;
@@ -75,7 +75,7 @@ export const defaultDiscordConfig: DiscordConfig = {
   messageTemplate: 'Alert: {{market}} crossed {{threshold}} — now at {{price}} on {{platform}}',
 };
 
-export const defaultGmailConfig: GmailConfig = {
+export const defaultEmailConfig: EmailConfig = {
   toEmail: '',
   subject: 'Market alert: {{market}}',
   bodyTemplate: 'Market: {{market}}\nCurrent price: {{price}}\nThreshold: {{threshold}}\nDirection: {{direction}}\nPlatform: {{platform}}',
@@ -86,7 +86,7 @@ function makeDefaultConfig(type: NodeType): NodeConfig {
     case 'kalshi': return { ...defaultKalshiConfig };
     case 'polymarket': return { ...defaultPolymarketConfig };
     case 'discord': return { ...defaultDiscordConfig };
-    case 'gmail': return { ...defaultGmailConfig };
+    case 'email': return { ...defaultEmailConfig };
   }
 }
 

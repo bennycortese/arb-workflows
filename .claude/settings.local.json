@@ -9,7 +9,10 @@
       "Bash(curl:*)",
       "Bash(python3 -m json.tool)",
       "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(m['ticker'], m.get\\('status',''\\)\\) for m in data['markets'] if 'BOS' in m['ticker'] or 'CAR' in m['ticker']]\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:docs.agentmail.to)",
+      "WebFetch(domain:api.elections.kalshi.com)",
+      "WebFetch(domain:api.kalshi.com)"
     ]
   }
 }

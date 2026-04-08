@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { GmailConfig } from '../atoms';
+import { EmailConfig } from '../atoms';
 
 interface Props {
-  config: GmailConfig;
-  onChange: (config: GmailConfig) => void;
+  config: EmailConfig;
+  onChange: (config: EmailConfig) => void;
 }
 
 export function GmailNodeConfig({ config, onChange }: Props) {
-  const set = (key: keyof GmailConfig, value: string) =>
+  const set = (key: keyof EmailConfig, value: string) =>
     onChange({ ...config, [key]: value });
 
   return (
@@ -73,7 +73,7 @@ export function GmailNodeConfig({ config, onChange }: Props) {
           )}
         </p>
         <p className="text-xs text-white/30 mt-1">
-          Requires Gmail OAuth credentials in server config
+          Sent via AgentMail from arbworflow@agentmail.to
         </p>
       </div>
     </div>
@@ -91,8 +91,8 @@ export function GmailNodeHeader() {
       </div>
       <div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white">Gmail</span>
-          <span className="badge-gmail text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide">ACTION</span>
+          <span className="text-sm font-semibold text-white">Email</span>
+          <span className="badge-email text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide">ACTION</span>
         </div>
         <p className="text-xs text-white/40">Send email alert</p>
       </div>
