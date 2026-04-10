@@ -98,81 +98,97 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
 
         {/* Search box */}
         <div ref={containerRef} className="relative">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onFocus={() => results.length > 0 && setOpen(true)}
-              placeholder="Search markets by name or keyword…"
-            />
-          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => results.length > 0 && setOpen(true)}
+            placeholder="Search markets…"
+          />
 
-          {open && results.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-[hsl(222,22%,8%)] shadow-xl overflow-hidden">
-              <div className="max-h-56 overflow-y-auto">
-                {results.map(m => (
-                  <button
-                    key={m.ticker}
-                    type="button"
-                    onClick={() => selectMarket(m)}
-                    className="w-full text-left px-3 py-2 hover:bg-white/5 transition-colors border-b border-border/50 last:border-0"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-white/80 leading-snug flex-1">{m.title}</span>
-                      {m.yes_bid != null && (
-                        <span className="text-xs font-mono text-emerald-400 flex-shrink-0 mt-0.5">
-                          {m.yes_bid}¢
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-mono text-white/35 mt-0.5 block">{m.ticker}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Results — wider than input, centered, pops to both sides */}
+          {open && (results.length > 0 || searchQuery) && (
+            <div
+              className="absolute z-[100] mt-1.5 rounded-xl overflow-hidden"
+              style={{
+                width: 320,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(10, 13, 22, 0.97)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(12px)',
+              }}
+            >
+              {results.length > 0 ? (
+                <>
+                  <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">
+                      Open Markets
+                    </span>
+                    <span className="text-[10px] text-white/20">{results.length} results</span>
+                  </div>
+                  <div className="px-1.5 pb-1.5 flex flex-col gap-0.5">
+                    {results.map(m => (
+                      <button
+                        key={m.ticker}
+                        type="button"
+                        onClick={() => selectMarket(m)}
+                        className="w-full text-left rounded-lg px-2.5 py-2 flex items-center gap-3 transition-colors group"
+                        style={{ background: 'transparent' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        {/* Green dot */}
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 flex-shrink-0 mt-px" />
 
-          {open && searchQuery && results.length === 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-[hsl(222,22%,8%)] shadow-xl px-3 py-2">
-              <p className="text-xs text-white/30">No open markets found for "{searchQuery}"</p>
+                        {/* Title + ticker */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-white/85 truncate leading-tight">{m.title}</p>
+                          <p className="text-[10px] font-mono text-white/25 mt-0.5 truncate">{m.ticker}</p>
+                        </div>
+
+                        {/* YES price pill */}
+                        {m.yes_bid != null && (
+                          <span
+                            className="flex-shrink-0 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md"
+                            style={{
+                              background: 'rgba(52, 211, 153, 0.1)',
+                              color: '#34d399',
+                              border: '1px solid rgba(52,211,153,0.15)',
+                            }}
+                          >
+                            {m.yes_bid}¢
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="px-4 py-4 text-center">
+                  <p className="text-xs text-white/25">No markets found</p>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Selected ticker display */}
+        {/* Selected ticker chip */}
         {config.marketTicker && (
-          <div className="mt-2 flex items-center gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
-            <span className="text-xs text-white/40">Selected:</span>
-            <span className="text-xs font-mono text-emerald-400 flex-1">{config.marketTicker}</span>
+          <div className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2"
+            style={{ background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.12)' }}>
+            <span className="text-[10px] font-mono text-emerald-400/90 flex-1 truncate">{config.marketTicker}</span>
             <button
               type="button"
               onClick={() => set('marketTicker', '')}
-              className="text-white/20 hover:text-white/50 transition-colors"
-              title="Clear"
+              className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
-        )}
-
-        {/* Manual entry fallback */}
-        {!config.marketTicker && (
-          <p className="mt-1.5 text-xs text-white/25">
-            Or paste a ticker directly:{' '}
-            <button
-              type="button"
-              onClick={() => {
-                const ticker = window.prompt('Enter ticker (e.g. INXD-25DEC31-T5500)');
-                if (ticker) set('marketTicker', ticker.trim().toUpperCase());
-              }}
-              className="text-cyan-400/70 hover:text-cyan-400 underline transition-colors"
-            >
-              enter manually
-            </button>
-          </p>
         )}
       </div>
 

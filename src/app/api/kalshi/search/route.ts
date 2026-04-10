@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     const markets: any[] = data.markets || [];
 
-    return NextResponse.json({ markets: markets.slice(0, 15) });
+    return NextResponse.json({ markets: markets.slice(0, 6) });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

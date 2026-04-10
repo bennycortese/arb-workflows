@@ -12,7 +12,8 @@
       "Bash(node:*)",
       "WebFetch(domain:docs.agentmail.to)",
       "WebFetch(domain:api.elections.kalshi.com)",
-      "WebFetch(domain:api.kalshi.com)"
+      "WebFetch(domain:api.kalshi.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
