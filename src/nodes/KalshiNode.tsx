@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { KalshiConfig } from '../atoms';
 
 interface MarketResult {
@@ -18,21 +17,12 @@ interface Props {
   onChange: (config: KalshiConfig) => void;
 }
 
-/** Kalshi multi-outcome titles look like "yes Lakers,yes Celtics,yes Warriors,..."
- *  Strip the yes/no prefixes and summarise. */
-function cleanTitle(market: MarketResult): string {
-  const raw = market.title || '';
+function parseOutcomes(raw: string): string[] | null {
   if (/^(yes|no)\s/i.test(raw) && raw.includes(',')) {
-    const parts = raw
-      .split(',')
-      .map(p => p.replace(/^(yes|no)\s+/i, '').trim())
-      .filter(Boolean);
-    if (parts.length <= 2) return parts.join(' vs ');
-    return `${parts[0]}, ${parts[1]} +${parts.length - 2} more`;
+    return raw.split(',').map(p => p.replace(/^(yes|no)\s+/i, '').trim()).filter(Boolean);
   }
-  return raw;
+  return null;
 }
-
 
 export function KalshiNodeConfig({ config, onChange }: Props) {
   const set = (key: keyof KalshiConfig, value: string) =>
@@ -41,10 +31,25 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<MarketResult[]>([]);
   const [open, setOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 480 });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputWrapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Unlock canvas-node overflow so the dropdown escapes the clipping box
+  useEffect(() => {
+    const node = containerRef.current?.closest('.canvas-node') as HTMLElement | null;
+    if (!node) return;
+    if (open) {
+      node.style.overflow = 'visible';
+      node.style.position = 'relative';
+    } else {
+      node.style.overflow = '';
+      node.style.position = '';
+    }
+    return () => {
+      node.style.overflow = '';
+      node.style.position = '';
+    };
+  }, [open]);
 
   const search = useCallback(
     async (q: string) => {
@@ -67,27 +72,11 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchQuery, search]);
 
-  // Recompute portal position whenever dropdown opens or results change
-  useEffect(() => {
-    if (!open || !inputWrapRef.current) return;
-    const rect = inputWrapRef.current.getBoundingClientRect();
-    const W = 480;
-    setDropdownPos({
-      top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX + rect.width / 2 - W / 2,
-      width: W,
-    });
-  }, [open, results]);
-
-  // Close on outside click
   useEffect(() => {
     function onDown(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        containerRef.current?.contains(target) ||
-        document.getElementById('kalshi-dropdown')?.contains(target)
-      ) return;
-      setOpen(false);
+      if (!containerRef.current?.closest('.canvas-node')?.contains(e.target as Node)) {
+        setOpen(false);
+      }
     }
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
@@ -99,53 +88,6 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
     setOpen(false);
     setResults([]);
   }
-
-  const dropdown = open && (results.length > 0 || searchQuery) && (
-    <div
-      id="kalshi-dropdown"
-      style={{
-        position: 'absolute',
-        top: dropdownPos.top,
-        left: dropdownPos.left,
-        width: dropdownPos.width,
-        zIndex: 9999,
-        borderRadius: 14,
-        background: 'rgba(9, 12, 21, 0.98)',
-        border: '1px solid rgba(255,255,255,0.09)',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(20px)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 14px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-      }}>
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
-          Open Markets
-        </span>
-        {results.length > 0 && (
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
-            {results.length} results
-          </span>
-        )}
-      </div>
-
-      {results.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 10 }}>
-          {results.map(m => (
-            <MarketCard key={m.ticker} market={m} onSelect={selectMarket} />
-          ))}
-        </div>
-      ) : (
-        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No markets found</p>
-        </div>
-      )}
-    </div>
-  );
 
   return (
     <div className="space-y-4" ref={containerRef}>
@@ -170,17 +112,59 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
           Market Ticker
         </label>
 
-        <div ref={inputWrapRef}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onFocus={() => results.length > 0 && setOpen(true)}
-            placeholder="Search markets…"
-          />
-        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Search markets…"
+        />
 
-        {typeof document !== 'undefined' && createPortal(dropdown, document.body)}
+        {/* Dropdown — position: absolute relative to .canvas-node (overflow: visible when open) */}
+        {open && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 560,
+              zIndex: 9999,
+              borderRadius: 14,
+              background: 'rgba(9, 12, 21, 0.98)',
+              border: '1px solid rgba(255,255,255,0.09)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04)',
+              backdropFilter: 'blur(20px)',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '9px 14px 8px',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
+                Open Markets
+              </span>
+              {results.length > 0 && (
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{results.length} results</span>
+              )}
+            </div>
+
+            {results.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: 10 }}>
+                {results.map(m => (
+                  <MarketCard key={m.ticker} market={m} onSelect={selectMarket} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No markets found</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Selected chip */}
         {config.marketTicker && (
@@ -240,74 +224,121 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
 
 function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: MarketResult) => void }) {
   const [hovered, setHovered] = useState(false);
-  const title = cleanTitle(market);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const outcomes = parseOutcomes(market.title);
+  const isMulti = outcomes !== null && outcomes.length > 1;
+  const displayTitle = isMulti
+    ? outcomes!.slice(0, 3).join(' · ') + (outcomes!.length > 3 ? ' · …' : '')
+    : market.title;
+
+  function handleMouseEnter() {
+    setHovered(true);
+    if (isMulti) tooltipTimeout.current = setTimeout(() => setTooltipVisible(true), 280);
+  }
+  function handleMouseLeave() {
+    setHovered(false);
+    setTooltipVisible(false);
+    if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
+  }
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(market)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: 6,
-        padding: '10px 12px',
-        borderRadius: 10,
-        border: hovered ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(255,255,255,0.06)',
-        background: hovered ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.025)',
-        transition: 'background 0.12s, border-color 0.12s',
-        textAlign: 'left',
-        cursor: 'pointer',
-      }}
-    >
-      {/* Price badge */}
-      {market.yes_bid != null && (
-        <span style={{
-          fontSize: 11,
-          fontFamily: 'monospace',
-          fontWeight: 600,
-          padding: '2px 7px',
-          borderRadius: 6,
-          background: hovered ? 'rgba(52,211,153,0.15)' : 'rgba(52,211,153,0.08)',
-          color: '#34d399',
-          border: '1px solid rgba(52,211,153,0.2)',
-          transition: 'background 0.12s',
+    <div style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => onSelect(market)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 8,
+          padding: '12px',
+          minHeight: 100,
+          borderRadius: 10,
+          border: hovered ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(255,255,255,0.07)',
+          background: hovered ? 'rgba(52,211,153,0.07)' : 'rgba(255,255,255,0.03)',
+          transition: 'background 0.12s, border-color 0.12s',
+          textAlign: 'left',
+          cursor: 'pointer',
+        }}
+      >
+        {/* Price + options count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+          {market.yes_bid != null && (
+            <span style={{
+              fontSize: 11, fontFamily: 'monospace', fontWeight: 600,
+              padding: '2px 7px', borderRadius: 6,
+              background: 'rgba(52,211,153,0.1)', color: '#34d399',
+              border: '1px solid rgba(52,211,153,0.2)',
+            }}>
+              {market.yes_bid}¢
+            </span>
+          )}
+          {isMulti && (
+            <span style={{
+              fontSize: 10, padding: '2px 6px', borderRadius: 5, marginLeft: 'auto',
+              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}>
+              {outcomes!.length} options
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <p style={{
+          fontSize: 12, lineHeight: 1.4, margin: 0, flex: 1,
+          color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.72)',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical' as const,
+          overflow: 'hidden',
+          transition: 'color 0.12s',
         }}>
-          {market.yes_bid}¢
-        </span>
+          {displayTitle}
+        </p>
+
+        {/* Ticker */}
+        <p style={{
+          fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.18)',
+          margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%',
+        }}>
+          {market.ticker}
+        </p>
+      </button>
+
+      {/* Tooltip for multi-outcome markets */}
+      {tooltipVisible && isMulti && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 6px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          background: 'rgba(9, 12, 21, 0.97)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 10,
+          padding: '10px 12px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+          minWidth: 160, maxWidth: 220,
+          pointerEvents: 'none',
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8, marginTop: 0 }}>
+            All {outcomes!.length} options
+          </p>
+          {outcomes!.map((o, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(52,211,153,0.5)', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{o}</span>
+            </div>
+          ))}
+        </div>
       )}
-
-      {/* Title */}
-      <p style={{
-        fontSize: 12,
-        color: hovered ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.75)',
-        lineHeight: 1.35,
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical' as const,
-        overflow: 'hidden',
-        transition: 'color 0.12s',
-        margin: 0,
-      }}>
-        {title}
-      </p>
-
-      {/* Ticker */}
-      <p style={{
-        fontSize: 10,
-        fontFamily: 'monospace',
-        color: 'rgba(255,255,255,0.2)',
-        margin: 0,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-        maxWidth: '100%',
-      }}>
-        {market.ticker}
-      </p>
-    </button>
+    </div>
   );
 }
 
