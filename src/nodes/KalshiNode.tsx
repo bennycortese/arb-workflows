@@ -1,19 +1,38 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { KalshiConfig } from '../atoms';
 
 interface MarketResult {
   ticker: string;
   title: string;
-  yes_bid: number; // cents
+  subtitle?: string;
+  yes_bid: number;
   event_ticker?: string;
+  category?: string;
 }
 
 interface Props {
   config: KalshiConfig;
   onChange: (config: KalshiConfig) => void;
 }
+
+/** Kalshi multi-outcome titles look like "yes Lakers,yes Celtics,yes Warriors,..."
+ *  Strip the yes/no prefixes and summarise. */
+function cleanTitle(market: MarketResult): string {
+  const raw = market.title || '';
+  if (/^(yes|no)\s/i.test(raw) && raw.includes(',')) {
+    const parts = raw
+      .split(',')
+      .map(p => p.replace(/^(yes|no)\s+/i, '').trim())
+      .filter(Boolean);
+    if (parts.length <= 2) return parts.join(' vs ');
+    return `${parts[0]}, ${parts[1]} +${parts.length - 2} more`;
+  }
+  return raw;
+}
+
 
 export function KalshiNodeConfig({ config, onChange }: Props) {
   const set = (key: keyof KalshiConfig, value: string) =>
@@ -22,22 +41,17 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<MarketResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 480 });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const search = useCallback(
     async (q: string) => {
-      if (!q.trim()) {
-        setResults([]);
-        setOpen(false);
-        return;
-      }
+      if (!q.trim()) { setResults([]); setOpen(false); return; }
       const headers: Record<string, string> = { accept: 'application/json' };
       if (config.apiKey) headers['x-kalshi-api-key'] = config.apiKey;
-      const res = await fetch(
-        `/api/kalshi/search?q=${encodeURIComponent(q)}`,
-        { headers }
-      );
+      const res = await fetch(`/api/kalshi/search?q=${encodeURIComponent(q)}`, { headers });
       if (res.ok) {
         const data = await res.json();
         setResults(data.markets || []);
@@ -50,20 +64,33 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => search(searchQuery), 400);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchQuery, search]);
 
-  // Close dropdown on outside click
+  // Recompute portal position whenever dropdown opens or results change
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+    if (!open || !inputWrapRef.current) return;
+    const rect = inputWrapRef.current.getBoundingClientRect();
+    const W = 480;
+    setDropdownPos({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX + rect.width / 2 - W / 2,
+      width: W,
+    });
+  }, [open, results]);
+
+  // Close on outside click
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (
+        containerRef.current?.contains(target) ||
+        document.getElementById('kalshi-dropdown')?.contains(target)
+      ) return;
+      setOpen(false);
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
   function selectMarket(m: MarketResult) {
@@ -73,8 +100,55 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
     setResults([]);
   }
 
+  const dropdown = open && (results.length > 0 || searchQuery) && (
+    <div
+      id="kalshi-dropdown"
+      style={{
+        position: 'absolute',
+        top: dropdownPos.top,
+        left: dropdownPos.left,
+        width: dropdownPos.width,
+        zIndex: 9999,
+        borderRadius: 14,
+        background: 'rgba(9, 12, 21, 0.98)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(20px)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 14px 8px',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
+          Open Markets
+        </span>
+        {results.length > 0 && (
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+            {results.length} results
+          </span>
+        )}
+      </div>
+
+      {results.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, padding: 10 }}>
+          {results.map(m => (
+            <MarketCard key={m.ticker} market={m} onSelect={selectMarket} />
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>No markets found</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={containerRef}>
       <div>
         <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
           API Key
@@ -96,8 +170,7 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
           Market Ticker
         </label>
 
-        {/* Search box */}
-        <div ref={containerRef} className="relative">
+        <div ref={inputWrapRef}>
           <input
             type="text"
             value={searchQuery}
@@ -105,76 +178,11 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
             onFocus={() => results.length > 0 && setOpen(true)}
             placeholder="Search markets…"
           />
-
-          {/* Results — wider than input, centered, pops to both sides */}
-          {open && (results.length > 0 || searchQuery) && (
-            <div
-              className="absolute z-[100] mt-1.5 rounded-xl overflow-hidden"
-              style={{
-                width: 320,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(10, 13, 22, 0.97)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(12px)',
-              }}
-            >
-              {results.length > 0 ? (
-                <>
-                  <div className="px-3 pt-2.5 pb-1.5 flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20">
-                      Open Markets
-                    </span>
-                    <span className="text-[10px] text-white/20">{results.length} results</span>
-                  </div>
-                  <div className="px-1.5 pb-1.5 flex flex-col gap-0.5">
-                    {results.map(m => (
-                      <button
-                        key={m.ticker}
-                        type="button"
-                        onClick={() => selectMarket(m)}
-                        className="w-full text-left rounded-lg px-2.5 py-2 flex items-center gap-3 transition-colors group"
-                        style={{ background: 'transparent' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        {/* Green dot */}
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 flex-shrink-0 mt-px" />
-
-                        {/* Title + ticker */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-white/85 truncate leading-tight">{m.title}</p>
-                          <p className="text-[10px] font-mono text-white/25 mt-0.5 truncate">{m.ticker}</p>
-                        </div>
-
-                        {/* YES price pill */}
-                        {m.yes_bid != null && (
-                          <span
-                            className="flex-shrink-0 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-md"
-                            style={{
-                              background: 'rgba(52, 211, 153, 0.1)',
-                              color: '#34d399',
-                              border: '1px solid rgba(52,211,153,0.15)',
-                            }}
-                          >
-                            {m.yes_bid}¢
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="px-4 py-4 text-center">
-                  <p className="text-xs text-white/25">No markets found</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Selected ticker chip */}
+        {typeof document !== 'undefined' && createPortal(dropdown, document.body)}
+
+        {/* Selected chip */}
         {config.marketTicker && (
           <div className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2"
             style={{ background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.12)' }}>
@@ -198,10 +206,7 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
             Price Threshold
           </label>
           <input
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
+            type="number" min="0" max="1" step="0.01"
             value={config.priceThreshold}
             onChange={e => set('priceThreshold', e.target.value)}
             placeholder="0.65"
@@ -230,6 +235,79 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
         </p>
       </div>
     </div>
+  );
+}
+
+function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: MarketResult) => void }) {
+  const [hovered, setHovered] = useState(false);
+  const title = cleanTitle(market);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(market)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 6,
+        padding: '10px 12px',
+        borderRadius: 10,
+        border: hovered ? '1px solid rgba(52,211,153,0.25)' : '1px solid rgba(255,255,255,0.06)',
+        background: hovered ? 'rgba(52,211,153,0.06)' : 'rgba(255,255,255,0.025)',
+        transition: 'background 0.12s, border-color 0.12s',
+        textAlign: 'left',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Price badge */}
+      {market.yes_bid != null && (
+        <span style={{
+          fontSize: 11,
+          fontFamily: 'monospace',
+          fontWeight: 600,
+          padding: '2px 7px',
+          borderRadius: 6,
+          background: hovered ? 'rgba(52,211,153,0.15)' : 'rgba(52,211,153,0.08)',
+          color: '#34d399',
+          border: '1px solid rgba(52,211,153,0.2)',
+          transition: 'background 0.12s',
+        }}>
+          {market.yes_bid}¢
+        </span>
+      )}
+
+      {/* Title */}
+      <p style={{
+        fontSize: 12,
+        color: hovered ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.75)',
+        lineHeight: 1.35,
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical' as const,
+        overflow: 'hidden',
+        transition: 'color 0.12s',
+        margin: 0,
+      }}>
+        {title}
+      </p>
+
+      {/* Ticker */}
+      <p style={{
+        fontSize: 10,
+        fontFamily: 'monospace',
+        color: 'rgba(255,255,255,0.2)',
+        margin: 0,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        maxWidth: '100%',
+      }}>
+        {market.ticker}
+      </p>
+    </button>
   );
 }
 
