@@ -21,7 +21,6 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<MarketResult[]>([]);
-  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,21 +32,16 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
         setOpen(false);
         return;
       }
-      setLoading(true);
-      try {
-        const headers: Record<string, string> = { accept: 'application/json' };
-        if (config.apiKey) headers['x-kalshi-api-key'] = config.apiKey;
-        const res = await fetch(
-          `/api/kalshi/search?q=${encodeURIComponent(q)}`,
-          { headers }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data.markets || []);
-          setOpen(true);
-        }
-      } finally {
-        setLoading(false);
+      const headers: Record<string, string> = { accept: 'application/json' };
+      if (config.apiKey) headers['x-kalshi-api-key'] = config.apiKey;
+      const res = await fetch(
+        `/api/kalshi/search?q=${encodeURIComponent(q)}`,
+        { headers }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data.markets || []);
+        setOpen(true);
       }
     },
     [config.apiKey]
@@ -105,41 +99,13 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
         {/* Search box */}
         <div ref={containerRef} className="relative">
           <div className="relative">
-            <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none"
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={() => results.length > 0 && setOpen(true)}
               placeholder="Search markets by name or keyword…"
-              className="pl-8 text-sm"
             />
-            {loading && (
-              <svg
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 animate-spin"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-            )}
           </div>
 
           {open && results.length > 0 && (
@@ -167,7 +133,7 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
             </div>
           )}
 
-          {open && !loading && searchQuery && results.length === 0 && (
+          {open && searchQuery && results.length === 0 && (
             <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-[hsl(222,22%,8%)] shadow-xl px-3 py-2">
               <p className="text-xs text-white/30">No open markets found for "{searchQuery}"</p>
             </div>
