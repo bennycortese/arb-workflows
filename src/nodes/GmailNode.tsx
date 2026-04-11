@@ -2,11 +2,17 @@
 
 import React from 'react';
 import { EmailConfig } from '../atoms';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 interface Props {
   config: EmailConfig;
   onChange: (config: EmailConfig) => void;
 }
+
+const VARS = ['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}', '{{url}}'];
 
 export function GmailNodeConfig({ config, onChange }: Props) {
   const set = (key: keyof EmailConfig, value: string) =>
@@ -15,10 +21,9 @@ export function GmailNodeConfig({ config, onChange }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
-          To Email
-        </label>
+        <Label htmlFor="email-to">To Email</Label>
         <input
+          id="email-to"
           type="email"
           value={config.toEmail}
           onChange={e => set('toEmail', e.target.value)}
@@ -27,10 +32,9 @@ export function GmailNodeConfig({ config, onChange }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
-          Subject
-        </label>
+        <Label htmlFor="email-subject">Subject</Label>
         <input
+          id="email-subject"
           type="text"
           value={config.subject}
           onChange={e => set('subject', e.target.value)}
@@ -39,31 +43,32 @@ export function GmailNodeConfig({ config, onChange }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
-          Body Template
-        </label>
+        <Label htmlFor="email-body">Body Template</Label>
         <textarea
+          id="email-body"
           value={config.bodyTemplate}
           onChange={e => set('bodyTemplate', e.target.value)}
           rows={5}
           placeholder={`Market: {{market}}\nPrice: {{price}}\nThreshold: {{threshold}}\nPlatform: {{platform}}`}
           className="resize-none font-mono text-xs leading-relaxed"
         />
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}', '{{url}}'].map(v => (
-            <button
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {VARS.map(v => (
+            <Button
               key={v}
               type="button"
+              variant="ghost"
+              size="sm"
+              className="font-mono text-[11px] h-6 px-2 border border-white/[0.08] text-white/40 hover:text-white/70"
               onClick={() => set('bodyTemplate', config.bodyTemplate + v)}
-              className="text-xs font-mono bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] text-white/50 hover:text-white/80 px-1.5 py-0.5 rounded transition-colors"
             >
               {v}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-lg bg-red-500/5 border border-red-500/15 p-3">
+      <Card className="bg-red-500/5 border-red-500/15 p-3 space-y-1">
         <p className="text-xs text-red-400/80">
           Sends to <span className="font-semibold">{config.toEmail || 'your email'}</span>
           {config.subject && (
@@ -72,10 +77,10 @@ export function GmailNodeConfig({ config, onChange }: Props) {
             </span></>
           )}
         </p>
-        <p className="text-xs text-white/30 mt-1">
+        <p className="text-xs text-white/25">
           Sent via AgentMail from arbworflow@agentmail.to
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -92,7 +97,7 @@ export function GmailNodeHeader() {
       <div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white">Email</span>
-          <span className="badge-email text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide">ACTION</span>
+          <Badge variant="email" className="text-[10px] px-1.5 py-0.5">ACTION</Badge>
         </div>
         <p className="text-xs text-white/40">Send email alert</p>
       </div>

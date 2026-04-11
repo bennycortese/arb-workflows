@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export interface MarketResult {
   ticker: string;
@@ -19,7 +21,6 @@ function parseOutcomes(raw: string): string[] | null {
 }
 
 function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: MarketResult) => void }) {
-  const [hovered, setHovered] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const tooltipTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -30,106 +31,69 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
     : market.title;
 
   function handleMouseEnter() {
-    setHovered(true);
     if (isMulti) tooltipTimeout.current = setTimeout(() => setTooltipVisible(true), 280);
   }
   function handleMouseLeave() {
-    setHovered(false);
     setTooltipVisible(false);
     if (tooltipTimeout.current) clearTimeout(tooltipTimeout.current);
   }
 
   return (
     <div style={{ position: 'relative' }}>
-      <button
-        type="button"
+      <Card
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(market)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={{
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: 8,
-          padding: '12px',
-          minHeight: 100,
-          borderRadius: 10,
-          border: hovered ? '1px solid rgba(52,211,153,0.3)' : '1px solid rgba(255,255,255,0.07)',
-          background: hovered ? 'rgba(52,211,153,0.07)' : 'rgba(255,255,255,0.03)',
-          transition: 'background 0.12s, border-color 0.12s',
-          textAlign: 'left',
-          cursor: 'pointer',
-        }}
+        onKeyDown={e => e.key === 'Enter' && onSelect(market)}
+        className="cursor-pointer p-3 flex flex-col gap-2 min-h-[96px] transition-all duration-100
+          hover:bg-white/[0.05] hover:border-emerald-500/25 group"
       >
-        {/* Price + options count */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+        {/* Top row: price badge + options count */}
+        <div className="flex items-center gap-2">
           {market.yes_bid != null && (
-            <span style={{
-              fontSize: 11, fontFamily: 'monospace', fontWeight: 600,
-              padding: '2px 7px', borderRadius: 6,
-              background: 'rgba(52,211,153,0.1)', color: '#34d399',
-              border: '1px solid rgba(52,211,153,0.2)',
-            }}>
+            <span className="text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded-md
+              bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               {market.yes_bid}¢
             </span>
           )}
           {isMulti && (
-            <span style={{
-              fontSize: 10, padding: '2px 6px', borderRadius: 5, marginLeft: 'auto',
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}>
+            <Badge variant="muted" className="text-[10px] ml-auto">
               {outcomes!.length} options
-            </span>
+            </Badge>
           )}
         </div>
 
         {/* Title */}
-        <p style={{
-          fontSize: 12, lineHeight: 1.4, margin: 0, flex: 1,
-          color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.72)',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical' as const,
-          overflow: 'hidden',
-          transition: 'color 0.12s',
-        }}>
+        <p className="text-[12px] leading-snug text-white/70 group-hover:text-white/90 transition-colors flex-1
+          overflow-hidden"
+          style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
           {displayTitle}
         </p>
 
         {/* Ticker */}
-        <p style={{
-          fontSize: 10, fontFamily: 'monospace', color: 'rgba(255,255,255,0.18)',
-          margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%',
-        }}>
+        <p className="text-[10px] font-mono text-white/20 truncate">
           {market.ticker}
         </p>
-      </button>
+      </Card>
 
-      {/* Tooltip for multi-outcome markets */}
+      {/* Hover tooltip for multi-outcome markets */}
       {tooltipVisible && isMulti && (
-        <div style={{
-          position: 'absolute',
-          bottom: 'calc(100% + 6px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10000,
-          background: 'rgba(9, 12, 21, 0.97)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          borderRadius: 10,
-          padding: '10px 12px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
-          minWidth: 160, maxWidth: 220,
-          pointerEvents: 'none',
-        }}>
-          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8, marginTop: 0 }}>
+        <div className="absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-[10000]
+          rounded-xl border border-white/[0.12] p-3 pointer-events-none"
+          style={{
+            background: 'rgba(9,12,21,0.97)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+            minWidth: 160, maxWidth: 220,
+          }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-2">
             All {outcomes!.length} options
           </p>
           {outcomes!.map((o, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(52,211,153,0.5)', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1.3 }}>{o}</span>
+            <div key={i} className="flex items-center gap-1.5 mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 flex-shrink-0" />
+              <span className="text-[11px] text-white/75 leading-snug">{o}</span>
             </div>
           ))}
         </div>
@@ -162,19 +126,15 @@ export function MarketSearch({ results, onSelect }: Props) {
       }}
     >
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '9px 14px 8px',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-      }}>
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
+      <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-white/[0.05]">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
           Open Markets
         </span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>{results.length} results</span>
+        <span className="text-[10px] text-white/20">{results.length} results</span>
       </div>
 
-      {/* Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: 10 }}>
+      {/* 3-column grid of cards */}
+      <div className="grid grid-cols-3 gap-2 p-2.5">
         {results.map(m => (
           <MarketCard key={m.ticker} market={m} onSelect={onSelect} />
         ))}

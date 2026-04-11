@@ -3,12 +3,18 @@
 import React from 'react';
 import { DiscordConfig } from '../atoms';
 import { fillTemplate, PREVIEW_VARS } from '../lib/template';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 
 interface Props {
   config: DiscordConfig;
   onChange: (config: DiscordConfig) => void;
   previewVars?: Record<string, string>;
 }
+
+const VARS = ['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}'];
 
 export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
   const set = (key: keyof DiscordConfig, value: string) =>
@@ -17,10 +23,9 @@ export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
-          Webhook URL
-        </label>
+        <Label htmlFor="discord-webhook">Webhook URL</Label>
         <input
+          id="discord-webhook"
           type="url"
           value={config.webhookUrl}
           onChange={e => set('webhookUrl', e.target.value)}
@@ -32,37 +37,39 @@ export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-white/50 mb-1.5 uppercase tracking-wide">
-          Message Template
-        </label>
+        <Label htmlFor="discord-template">Message Template</Label>
         <textarea
+          id="discord-template"
           value={config.messageTemplate}
           onChange={e => set('messageTemplate', e.target.value)}
           rows={3}
           placeholder="Alert: {{market}} crossed {{threshold}} — now at {{price}}"
           className="resize-none"
         />
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}'].map(v => (
-            <button
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {VARS.map(v => (
+            <Button
               key={v}
               type="button"
+              variant="ghost"
+              size="sm"
+              className="font-mono text-[11px] h-6 px-2 border border-white/[0.08] text-white/40 hover:text-white/70"
               onClick={() => set('messageTemplate', config.messageTemplate + v)}
-              className="text-xs font-mono bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] text-white/50 hover:text-white/80 px-1.5 py-0.5 rounded transition-colors"
             >
               {v}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <div className="rounded-lg bg-indigo-500/5 border border-indigo-500/15 p-3">
-        <p className="text-xs text-indigo-400/80 leading-relaxed">
-          Preview: <span className="text-indigo-300">{
-            fillTemplate(config.messageTemplate, previewVars ?? PREVIEW_VARS)
-          }</span>
+      <Card className="bg-indigo-500/5 border-indigo-500/15 p-3">
+        <p className="text-xs text-indigo-400/70 leading-relaxed">
+          Preview:{' '}
+          <span className="text-indigo-300">
+            {fillTemplate(config.messageTemplate, previewVars ?? PREVIEW_VARS)}
+          </span>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -78,7 +85,7 @@ export function DiscordNodeHeader() {
       <div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-white">Discord</span>
-          <span className="badge-discord text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide">ACTION</span>
+          <Badge variant="discord" className="text-[10px] px-1.5 py-0.5">ACTION</Badge>
         </div>
         <p className="text-xs text-white/40">Send alert to a Discord channel</p>
       </div>
