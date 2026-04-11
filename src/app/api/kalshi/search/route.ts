@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         const eventData = await eventRes.json();
         const eventMarkets: any[] = eventData.markets || [];
         if (eventMarkets.length > 0) {
-          return NextResponse.json({ markets: eventMarkets });
+return NextResponse.json({ markets: eventMarkets });
         }
       }
 

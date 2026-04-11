@@ -16,7 +16,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npx getdesign@latest add kraken)",
       "Bash(npx getdesign@latest add linear.app)",
-      "Bash(npx getdesign@latest add figma)"
+      "Bash(npx getdesign@latest add figma)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); m=d['markets'][0] if d.get\\('markets'\\) else {}; print\\(json.dumps\\(m, indent=2\\)\\)\")"
     ]
   }
 }

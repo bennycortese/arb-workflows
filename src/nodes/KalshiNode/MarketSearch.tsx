@@ -6,7 +6,8 @@ import { createPortal } from 'react-dom';
 export interface MarketResult {
   ticker: string;
   title: string;
-  subtitle?: string;
+  yes_sub_title?: string;  // Kalshi's per-outcome name, e.g. "Netflix", "Peacock"
+  no_sub_title?: string;
   yes_bid: number;
   event_ticker?: string;
   category?: string;
@@ -31,6 +32,15 @@ function explodeOutcomes(markets: MarketResult[]): MarketResult[] {
   return out;
 }
 
+/** Best human-readable outcome label for a market, in priority order */
+function outcomeLabel(market: MarketResult): string | null {
+  // yes_sub_title is the canonical Kalshi field for the outcome name (e.g. "Netflix", "Peacock")
+  if (market.yes_sub_title && market.yes_sub_title.trim()) {
+    return market.yes_sub_title.trim();
+  }
+  return null;
+}
+
 /** Extract the outcome suffix from a ticker, e.g. KXAISTREAMSERIES-27-NET → NET */
 function tickerSuffix(ticker: string): string {
   const parts = ticker.split('-');
@@ -43,8 +53,11 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
   const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardRef = useRef<HTMLButtonElement>(null);
 
+  const label = outcomeLabel(market);
   const suffix = tickerSuffix(market.ticker);
-  const leadWithSuffix = suffix.length <= 6 && suffix !== market.ticker;
+  // Use a compact lead layout when we have a short code or a full name from the API
+  const leadWithSuffix = (label !== null) || (suffix.length <= 6 && suffix !== market.ticker);
+  const displayLabel = label ?? suffix;
 
   function onEnter() {
     setHovered(true);
@@ -120,7 +133,7 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
           <>
             <p className="text-[15px] font-semibold tracking-wide font-mono leading-none"
               style={{ color: hovered ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.88)' }}>
-              {suffix}
+              {displayLabel}
             </p>
             <p className="text-[10px] font-mono truncate" style={{ color: 'rgba(255,255,255,0.28)' }}>
               {market.ticker}
