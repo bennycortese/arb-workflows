@@ -13,31 +13,21 @@ export interface MarketResult {
   category?: string;
 }
 
-/** Splits "yes Netflix,yes Disney,yes Amazon" → individual outcome markets */
-function explodeOutcomes(markets: MarketResult[]): MarketResult[] {
-  const out: MarketResult[] = [];
-  for (const m of markets) {
-    if (/^(yes|no)\s/i.test(m.title) && m.title.includes(',')) {
-      const parts = m.title
-        .split(',')
-        .map(p => p.replace(/^(yes|no)\s+/i, '').trim())
-        .filter(Boolean);
-      parts.forEach(label => {
-        out.push({ ...m, title: label });
-      });
-    } else {
-      out.push(m);
-    }
-  }
-  return out;
+interface Outcome { side: 'yes' | 'no'; name: string; }
+
+/** Parse "yes X,yes Y,no Z" into structured outcomes */
+function parseOutcomes(title: string): Outcome[] | null {
+  if (!/^(yes|no)\s/i.test(title) || !title.includes(',')) return null;
+  const parts = title.split(',').map(p => {
+    const m = p.match(/^(yes|no)\s+(.+)$/i);
+    return m ? { side: m[1].toLowerCase() as 'yes' | 'no', name: m[2].trim() } : null;
+  }).filter(Boolean) as Outcome[];
+  return parts.length > 1 ? parts : null;
 }
 
-/** Best human-readable outcome label for a market, in priority order */
+/** Best human-readable short label for a market */
 function outcomeLabel(market: MarketResult): string | null {
-  // yes_sub_title is the canonical Kalshi field for the outcome name (e.g. "Netflix", "Peacock")
-  if (market.yes_sub_title && market.yes_sub_title.trim()) {
-    return market.yes_sub_title.trim();
-  }
+  if (market.yes_sub_title && market.yes_sub_title.trim()) return market.yes_sub_title.trim();
   return null;
 }
 
@@ -55,9 +45,9 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
 
   const label = outcomeLabel(market);
   const suffix = tickerSuffix(market.ticker);
-  // Use a compact lead layout when we have a short code or a full name from the API
   const leadWithSuffix = (label !== null) || (suffix.length <= 6 && suffix !== market.ticker);
   const displayLabel = label ?? suffix;
+  const outcomes = leadWithSuffix ? null : parseOutcomes(market.title);
 
   function onEnter() {
     setHovered(true);
@@ -74,7 +64,6 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
     if (tooltipTimer.current) clearTimeout(tooltipTimer.current);
   }
 
-  // Close tooltip on scroll/resize
   useEffect(() => {
     if (!tooltipPos) return;
     const hide = () => setTooltipPos(null);
@@ -82,6 +71,34 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
     window.addEventListener('resize', hide);
     return () => { window.removeEventListener('scroll', hide, true); window.removeEventListener('resize', hide); };
   }, [tooltipPos]);
+
+  const tooltipContent = outcomes ? (
+    // Parlay tooltip: full outcome list with yes/no indicators
+    <>
+      <p className="text-[10px] font-semibold uppercase tracking-widest mb-2"
+        style={{ color: 'rgba(255,255,255,0.35)' }}>
+        {outcomes.length}-pick parlay
+      </p>
+      <div className="flex flex-col gap-1">
+        {outcomes.map((o, i) => (
+          <div key={i} className="flex items-start gap-1.5">
+            <span className="text-[9px] font-mono font-semibold mt-0.5 flex-shrink-0"
+              style={{ color: o.side === 'yes' ? '#34d399' : '#f87171' }}>
+              {o.side.toUpperCase()}
+            </span>
+            <span className="text-[11px] text-white/75 leading-snug">{o.name}</span>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] font-mono text-white/25 mt-2">{market.ticker}</p>
+    </>
+  ) : (
+    // Regular tooltip: raw title + ticker
+    <>
+      <p className="text-[11px] text-white/80 leading-snug mb-1.5">{market.title}</p>
+      <p className="text-[10px] font-mono text-white/35">{market.ticker}</p>
+    </>
+  );
 
   const tooltip = tooltipPos && createPortal(
     <div
@@ -91,7 +108,7 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
         left: tooltipPos.left,
         transform: 'translateY(-100%)',
         zIndex: 99999,
-        width: 240,
+        width: outcomes ? 280 : 240,
         background: 'rgba(8,10,18,0.98)',
         border: '1px solid rgba(255,255,255,0.14)',
         borderRadius: 12,
@@ -100,8 +117,7 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
         pointerEvents: 'none',
       }}
     >
-      <p className="text-[11px] text-white/80 leading-snug mb-1.5">{market.title}</p>
-      <p className="text-[10px] font-mono text-white/35">{market.ticker}</p>
+      {tooltipContent}
     </div>,
     document.body
   );
@@ -114,7 +130,7 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
         onClick={() => onSelect(market)}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}
-        className="w-full text-left flex flex-col gap-2.5 p-3 rounded-xl transition-all duration-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50"
+        className="w-full text-left flex flex-col gap-2 p-3 rounded-xl transition-all duration-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50"
         style={{
           minHeight: 88,
           background: hovered ? 'rgba(52,211,153,0.08)' : 'rgba(255,255,255,0.04)',
@@ -122,13 +138,23 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
           boxShadow: hovered ? '0 0 0 1px rgba(52,211,153,0.08) inset' : 'none',
         }}
       >
-        {market.yes_bid != null && (
-          <span className="self-start text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md"
-            style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-            {market.yes_bid}¢
-          </span>
-        )}
+        {/* Top row: price + parlay badge */}
+        <div className="flex items-center gap-2">
+          {market.yes_bid != null && (
+            <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+              {market.yes_bid}¢
+            </span>
+          )}
+          {outcomes && (
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              {outcomes.length} picks
+            </span>
+          )}
+        </div>
 
+        {/* Body */}
         {leadWithSuffix ? (
           <>
             <p className="text-[15px] font-semibold tracking-wide font-mono leading-none"
@@ -137,6 +163,20 @@ function MarketCard({ market, onSelect }: { market: MarketResult; onSelect: (m: 
             </p>
             <p className="text-[10px] font-mono truncate" style={{ color: 'rgba(255,255,255,0.28)' }}>
               {market.ticker}
+            </p>
+          </>
+        ) : outcomes ? (
+          // Parlay: show first 3 names + overflow count
+          <>
+            <p className="text-[12px] font-medium leading-snug"
+              style={{ color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
+              {outcomes.slice(0, 3).map(o => o.name).join(' · ')}
+              {outcomes.length > 3 && (
+                <span style={{ color: 'rgba(255,255,255,0.3)' }}> +{outcomes.length - 3} more</span>
+              )}
+            </p>
+            <p className="text-[10px] font-mono truncate" style={{ color: 'rgba(255,255,255,0.22)' }}>
+              Hover for full breakdown
             </p>
           </>
         ) : (
@@ -166,8 +206,6 @@ interface Props {
 }
 
 export function MarketSearch({ results, onSelect }: Props) {
-  const cards = explodeOutcomes(results);
-
   return (
     <div
       style={{
@@ -193,13 +231,13 @@ export function MarketSearch({ results, onSelect }: Props) {
           Open Markets
         </span>
         <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          {cards.length} results
+          {results.length} results
         </span>
       </div>
 
       {/* Grid */}
       <div className="grid grid-cols-3 gap-2 p-3">
-        {cards.map((m, i) => (
+        {results.map((m, i) => (
           <MarketCard key={`${m.ticker}-${i}`} market={m} onSelect={onSelect} />
         ))}
       </div>
