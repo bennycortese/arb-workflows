@@ -17,6 +17,26 @@ function looksLikeTicker(q: string) {
   return /^[A-Z0-9][A-Z0-9\-]+$/.test(q.trim().toUpperCase()) && q.includes('-');
 }
 
+// Kalshi URL slugs often concatenate event ticker + outcome code without a separating dash.
+// e.g. kxncaambgame-26jan17bulmd → event: KXNCAAMBGAME-26JAN17, outcome: BULMD
+// Detect by finding a date-like segment (\d{2}[A-Z]{3}\d{2}) followed by trailing letters.
+function extractEventTicker(ticker: string): string | null {
+  const m = ticker.match(/^(.+\d{2}[A-Z]{3}\d{2})([A-Z]{2,})$/);
+  return m ? m[1] : null;
+}
+
+async function tryEventTicker(eventTicker: string, apiKey: string | null): Promise<any[] | null> {
+  const url = new URL(`${BASE}/markets`);
+  url.searchParams.set('event_ticker', eventTicker);
+  url.searchParams.set('status', 'open');
+  url.searchParams.set('limit', '25');
+  const res = await kalshiFetch(url.toString(), apiKey);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const markets: any[] = data.markets || [];
+  return markets.length > 0 ? markets : null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const q = (request.nextUrl.searchParams.get('q') || '').trim();
@@ -26,24 +46,21 @@ export async function GET(request: NextRequest) {
 
     const qUpper = q.toUpperCase();
 
-    // Strategy 1: if query looks like a ticker, try fetching by event_ticker
-    // This returns all individual outcome markets for that event
+    // Strategy 1: if query looks like a ticker, try multiple event_ticker forms
     if (looksLikeTicker(q)) {
-      const eventUrl = new URL(`${BASE}/markets`);
-      eventUrl.searchParams.set('event_ticker', qUpper);
-      eventUrl.searchParams.set('status', 'open');
-      eventUrl.searchParams.set('limit', '25');
+      // 1a. Try as-is (works when user pastes a real event ticker like KXNCAAMBGAME-26JAN17)
+      const directEvent = await tryEventTicker(qUpper, apiKey);
+      if (directEvent) return NextResponse.json({ markets: directEvent });
 
-      const eventRes = await kalshiFetch(eventUrl.toString(), apiKey);
-      if (eventRes.ok) {
-        const eventData = await eventRes.json();
-        const eventMarkets: any[] = eventData.markets || [];
-        if (eventMarkets.length > 0) {
-return NextResponse.json({ markets: eventMarkets });
-        }
+      // 1b. Try extracting event ticker from URL-concatenated form
+      // (e.g. kxncaambgame-26jan17bulmd → KXNCAAMBGAME-26JAN17)
+      const extracted = extractEventTicker(qUpper);
+      if (extracted) {
+        const extractedMarkets = await tryEventTicker(extracted, apiKey);
+        if (extractedMarkets) return NextResponse.json({ markets: extractedMarkets });
       }
 
-      // Also try fetching the market directly by ticker
+      // 1c. Try fetching the market directly by ticker
       const directRes = await kalshiFetch(`${BASE}/markets/${qUpper}`, apiKey);
       if (directRes.ok) {
         const directData = await directRes.json();
