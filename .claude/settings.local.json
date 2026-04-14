@@ -18,7 +18,10 @@
       "Bash(npx getdesign@latest add linear.app)",
       "Bash(npx getdesign@latest add figma)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); m=d['markets'][0] if d.get\\('markets'\\) else {}; print\\(json.dumps\\(m, indent=2\\)\\)\")",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(xargs grep:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)"
     ]
   }
 }
