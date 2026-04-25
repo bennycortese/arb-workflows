@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { useUser, UserButton } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './@/components/ui/button';
-import { workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode } from './atoms';
+import {
+  workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode,
+  workflowsLoadedAtom, saveWorkflowAtom, deleteWorkflowAtom,
+} from './atoms';
 
 // ─── Node meta ────────────────────────────────────────────────────────────────
 const NODE_META: Record<string, { color: string; accent: string; label: string }> = {
@@ -209,8 +212,26 @@ export default function Dashboard() {
   const t = useTranslations('dashboard');
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [, setActiveId] = useAtom(activeWorkflowIdAtom);
+  const [loaded, setLoaded] = useAtom(workflowsLoadedAtom);
+  const saveWorkflow = useSetAtom(saveWorkflowAtom);
+  const deleteWorkflowRemote = useSetAtom(deleteWorkflowAtom);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
+
+  // Load workflows from Supabase on first mount
+  useEffect(() => {
+    if (loaded) return;
+    fetch('/api/workflows/list')
+      .then(r => r.json())
+      .then(data => {
+        if (data.workflows) setWorkflows(data.workflows);
+        setLoaded(true);
+      })
+      .catch(err => {
+        console.error('[arbflow] load failed:', err);
+        setLoaded(true); // don't block UI on error
+      });
+  }, [loaded, setWorkflows, setLoaded]);
 
   function createWorkflow(name: string) {
     const wf: Workflow = {
@@ -221,16 +242,23 @@ export default function Dashboard() {
       createdAt: new Date().toISOString(),
     };
     setWorkflows(prev => [wf, ...prev]);
+    saveWorkflow(wf);
     setActiveId(wf.id);
     router.push(`/workflow/${wf.id}`);
   }
 
   function deleteWorkflow(id: string) {
     setWorkflows(prev => prev.filter(w => w.id !== id));
+    deleteWorkflowRemote(id);
   }
 
   function toggleWorkflow(id: string) {
-    setWorkflows(prev => prev.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
+    setWorkflows(prev => prev.map(w => {
+      if (w.id !== id) return w;
+      const updated = { ...w, enabled: !w.enabled };
+      saveWorkflow(updated);
+      return updated;
+    }));
   }
 
   function openWorkflow(id: string) {
@@ -317,7 +345,11 @@ export default function Dashboard() {
         )}
 
         <div className="db-canvas">
-          {workflows.length === 0 ? (
+          {!loaded ? (
+            <div className="empty-state">
+              <p className="text-white/30 text-sm">Loading workflows…</p>
+            </div>
+          ) : workflows.length === 0 ? (
             <EmptyState onCreate={() => setCreating(true)} />
           ) : filtered.length === 0 ? (
             <div className="empty-state">

@@ -112,3 +112,27 @@ export const activeWorkflowAtom = atom(
     return workflows.find(w => w.id === id) ?? null;
   }
 );
+
+// True after the initial load from /api/workflows/list completes (prevents double-fetch)
+export const workflowsLoadedAtom = atom(false);
+
+// Write-only atom: fire-and-forget persist to Supabase
+export const saveWorkflowAtom = atom(
+  null,
+  (_get, _set, workflow: Workflow) => {
+    fetch('/api/workflows/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(workflow),
+    }).catch(err => console.error('[arbflow] save failed:', err));
+  }
+);
+
+// Write-only atom: fire-and-forget delete from Supabase
+export const deleteWorkflowAtom = atom(
+  null,
+  (_get, _set, workflowId: string) => {
+    fetch(`/api/workflows/${workflowId}`, { method: 'DELETE' })
+      .catch(err => console.error('[arbflow] delete failed:', err));
+  }
+);

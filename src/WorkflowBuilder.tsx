@@ -26,7 +26,9 @@ import {
   workflowsAtom, activeWorkflowIdAtom,
   WorkflowNode, NodeType, createNode,
   KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, NodeConfig,
+  saveWorkflowAtom,
 } from './atoms';
+import { useSetAtom } from 'jotai';
 import { KalshiNodeConfig, KalshiNodeHeader } from './nodes/KalshiNode';
 import { PolymarketNodeConfig, PolymarketNodeHeader } from './nodes/PolymarketNode';
 import { DiscordNodeConfig, DiscordNodeHeader } from './nodes/DiscordNode';
@@ -421,6 +423,7 @@ export default function WorkflowBuilder() {
   const router = useRouter();
   const [workflows, setWorkflows] = useAtom(workflowsAtom);
   const [activeId] = useAtom(activeWorkflowIdAtom);
+  const saveWorkflow = useSetAtom(saveWorkflowAtom);
   const t = useTranslations('builder');
 
   const workflowId = id ?? activeId ?? '';
@@ -431,6 +434,15 @@ export default function WorkflowBuilder() {
   const [showPicker, setShowPicker] = useState(false);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
+
+  // Debounced auto-save: 1.5s after the last change
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!workflow) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveWorkflow(workflow), 1500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [workflow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist waypoint changes from edge drag → jotai
   const onWaypointChange = useCallback((edgeId: string, wp: { x: number; y: number } | undefined) => {
@@ -559,11 +571,12 @@ export default function WorkflowBuilder() {
           type: r.status === 'error' ? 'error' : r.status === 'ok' ? 'success' : 'info',
         });
       }
-      setWorkflows(prev => prev.map(w =>
-        w.id === workflowId
-          ? { ...w, lastRun: new Date().toISOString(), lastStatus: data.success ? 'success' : 'error' }
-          : w
-      ));
+      setWorkflows(prev => prev.map(w => {
+        if (w.id !== workflowId) return w;
+        const updated = { ...w, lastRun: new Date().toISOString(), lastStatus: (data.success ? 'success' : 'error') as 'success' | 'error' };
+        saveWorkflow(updated);
+        return updated;
+      }));
     } catch (err: any) {
       newLog.push({ ts: ts(), message: `Error: ${err.message}`, type: 'error' });
     }
