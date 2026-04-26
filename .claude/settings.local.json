@@ -24,7 +24,9 @@
       "Bash(gh api:*)",
       "WebSearch",
       "WebFetch(domain:docs.kalshi.com)",
-      "WebFetch(domain:docs.polymarket.com)"
+      "WebFetch(domain:docs.polymarket.com)",
+      "WebFetch(domain:neon.com)",
+      "WebFetch(domain:supabase.com)"
     ]
   }
 }
