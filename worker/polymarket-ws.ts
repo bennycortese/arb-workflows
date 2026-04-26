@@ -93,7 +93,7 @@ export class PolymarketWSManager {
           `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}&limit=1`,
           { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) }
         );
-        const data: any[] = await res.json();
+        const data = await res.json() as any[];
         const conditionId: string = data[0]?.conditionId;
         if (!conditionId) { console.error('[polymarket-ws] no conditionId for slug:', slug); return; }
 
