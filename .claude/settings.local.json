@@ -26,7 +26,9 @@
       "WebFetch(domain:docs.kalshi.com)",
       "WebFetch(domain:docs.polymarket.com)",
       "WebFetch(domain:neon.com)",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
