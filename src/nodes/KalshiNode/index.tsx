@@ -44,16 +44,16 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   const search = useCallback(
     async (q: string) => {
       if (!q.trim()) { setResults([]); setOpen(false); return; }
-      const headers: Record<string, string> = { accept: 'application/json' };
-      if (config.apiKey) headers['x-kalshi-api-key'] = config.apiKey;
-      const res = await fetch(`/api/kalshi/search?q=${encodeURIComponent(q)}`, { headers });
+      const res = await fetch(`/api/kalshi/search?q=${encodeURIComponent(q)}`, {
+        headers: { accept: 'application/json' },
+      });
       if (res.ok) {
         const data = await res.json();
         setResults(data.markets || []);
         setOpen(true);
       }
     },
-    [config.apiKey]
+    []
   );
 
   useEffect(() => {
