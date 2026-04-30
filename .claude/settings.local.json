@@ -29,7 +29,9 @@
       "WebFetch(domain:supabase.com)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/*.md)"
+      "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/*.md)",
+      "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/.env*)",
+      "Bash(supabase --version)"
     ]
   }
 }

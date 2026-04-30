@@ -434,6 +434,20 @@ export default function WorkflowBuilder() {
   const [showPicker, setShowPicker] = useState(false);
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
+  const [fetchingWorkflow, setFetchingWorkflow] = useState(false);
+
+  // If we landed directly on /workflow/[id] (page refresh), fetch from API
+  useEffect(() => {
+    if (!workflowId || workflow || fetchingWorkflow) return;
+    setFetchingWorkflow(true);
+    fetch(`/api/workflows/${workflowId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.workflow) setWorkflows(prev => [...prev, data.workflow]);
+      })
+      .catch(() => {})
+      .finally(() => setFetchingWorkflow(false));
+  }, [workflowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced auto-save: 1.5s after the last change
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -587,8 +601,10 @@ export default function WorkflowBuilder() {
   if (!workflow) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center flex-col gap-4">
-        <p className="text-white/50">{t('workflowNotFound')}</p>
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>{t('backButton')}</Button>
+        <p className="text-white/50">{fetchingWorkflow ? 'Loading…' : t('workflowNotFound')}</p>
+        {!fetchingWorkflow && (
+          <Button variant="outline" onClick={() => router.push('/dashboard')}>{t('backButton')}</Button>
+        )}
       </div>
     );
   }
