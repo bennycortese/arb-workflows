@@ -4,9 +4,9 @@ import { evaluateAndNotify } from '../../../lib/thresholdEval';
 
 const BATCH_SIZE = 5;
 
-export async function POST(request: NextRequest) {
-  const secret = request.headers.get('x-cron-secret');
-  if (secret !== process.env.CRON_SECRET) {
+export async function GET(request: NextRequest) {
+  const auth = request.headers.get('authorization');
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
