@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fillTemplate } from './template';
+import { WorkflowGraph } from './workflowGraph';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -11,15 +12,10 @@ export interface WorkflowNode {
   config: Record<string, string>;
 }
 
-export interface WorkflowEdge {
-  source: string;
-  target: string;
-}
-
 export interface WorkflowLike {
   id: string;
   nodes: WorkflowNode[];
-  edges?: WorkflowEdge[];
+  edges?: { source: string; target: string }[];
 }
 
 export interface RunResult {
@@ -210,13 +206,11 @@ export async function evaluateAndNotify(
   }
 
   // ── Step 2: Fire action nodes — one message per connected triggered source ──
-  for (const node of workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email')) {
-    // Determine which triggered sources feed this action node, preserving edge order
-    const connectedTriggeredVars: Record<string, string>[] = workflow.edges && workflow.edges.length > 0
-      ? workflow.edges
-          .filter(e => e.target === node.id && triggeredVars.has(e.source))
-          .map(e => triggeredVars.get(e.source)!)
-      : [...triggeredVars.values()]; // legacy: no edges, use all triggered sources
+  const graph = new WorkflowGraph(workflow.nodes, workflow.edges);
+  for (const node of graph.actionNodes) {
+    const connectedTriggeredVars = graph.sourcesFor(node.id)
+      .filter(s => triggeredVars.has(s.id))
+      .map(s => triggeredVars.get(s.id)!);
 
     if (connectedTriggeredVars.length === 0) {
       results.push({ nodeId: node.id, type: node.type as NodeType, status: 'skip', message: 'Skipped — no connected threshold was met' });

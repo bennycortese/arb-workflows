@@ -11,6 +11,7 @@ import {
   workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode, WorkflowEdge,
   workflowsLoadedAtom, saveWorkflowAtom, deleteWorkflowAtom,
 } from './atoms';
+import { WorkflowGraph } from './lib/workflowGraph';
 
 // ─── Node meta ────────────────────────────────────────────────────────────────
 const NODE_META: Record<string, { color: string; accent: string; label: string }> = {
@@ -36,8 +37,8 @@ function MiniCanvas({ nodes, edges }: { nodes: WorkflowNode[]; edges?: WorkflowE
     );
   }
 
-  const sources = nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket');
-  const actions = nodes.filter(n => n.type === 'discord' || n.type === 'email');
+  const graph = new WorkflowGraph(nodes, edges);
+  const { sourceNodes: sources, actionNodes: actions } = graph;
 
   // Single-column layout when only one side is populated
   if (sources.length === 0 || actions.length === 0) {
@@ -95,9 +96,7 @@ function MiniCanvas({ nodes, edges }: { nodes: WorkflowNode[]; edges?: WorkflowE
   sources.forEach((n, i) => posMap.set(n.id, { x: srcX, y: colY(sources.length, i) }));
   actions.forEach((n, i) => posMap.set(n.id, { x: actX, y: colY(actions.length, i) }));
 
-  const edgesToDraw: { source: string; target: string }[] = edges && edges.length > 0
-    ? edges.filter(e => posMap.has(e.source) && posMap.has(e.target))
-    : sources.flatMap(s => actions.map(a => ({ source: s.id, target: a.id })));
+  const edgesToDraw = graph.sourceActionEdges;
 
   return (
     <div className="mini-canvas">

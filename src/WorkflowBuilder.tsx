@@ -33,6 +33,7 @@ import { KalshiNodeConfig, KalshiNodeHeader } from './nodes/KalshiNode';
 import { PolymarketNodeConfig, PolymarketNodeHeader } from './nodes/PolymarketNode';
 import { DiscordNodeConfig, DiscordNodeHeader } from './nodes/DiscordNode';
 import { GmailNodeConfig, GmailNodeHeader } from './nodes/GmailNode';
+import { WorkflowGraph } from './lib/workflowGraph';
 
 // ── Node type picker ──────────────────────────────────────────────────────────
 const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source' | 'action'; color: string }[] = [
@@ -329,15 +330,8 @@ function DiscordCanvasNode({ id, data }: NodeProps) {
 
   if (!node) return null;
 
-  const connectedSourceIds = new Set(
-    (workflow?.edges ?? []).filter(e => e.target === id).map(e => e.source)
-  );
-  const sourceNodes = connectedSourceIds.size > 0
-    ? (workflow?.edges ?? [])
-        .filter(e => e.target === id)
-        .map(e => workflow?.nodes.find(n => n.id === e.source))
-        .filter((n): n is WorkflowNode => n !== undefined && (n.type === 'kalshi' || n.type === 'polymarket'))
-    : (workflow?.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket') ?? []);
+  const graph = new WorkflowGraph(workflow?.nodes ?? [], workflow?.edges);
+  const sourceNodes = graph.sourcesFor(id);
 
   const previewVarsList: Record<string, string>[] = sourceNodes.map(sourceNode => {
     if (sourceNode.type === 'kalshi') {
