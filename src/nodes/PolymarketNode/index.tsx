@@ -12,6 +12,18 @@ interface Props {
   onChange: (config: PolymarketConfig) => void;
 }
 
+interface OutcomeOption {
+  label: string;
+  price: number;
+}
+
+function parsePrices(raw: string): number[] {
+  try { return (JSON.parse(raw) as string[]).map(Number); } catch { return []; }
+}
+function parseOutcomes(raw: string): string[] {
+  try { return JSON.parse(raw) as string[]; } catch { return []; }
+}
+
 export function PolymarketNodeConfig({ config, onChange }: Props) {
   const set = (key: keyof PolymarketConfig, value: string) =>
     onChange({ ...config, [key]: value });
@@ -19,6 +31,10 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<PolyMarketResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [outcomeOptions, setOutcomeOptions] = useState<OutcomeOption[]>([
+    { label: 'Yes', price: 0 },
+    { label: 'No',  price: 0 },
+  ]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -68,13 +84,19 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
   }, []);
 
   function selectMarket(m: PolyMarketResult) {
-    set('marketSlug', m.slug);
-    // Default outcomeIndex to 0 (Yes / first outcome)
+    const labels = parseOutcomes(m.outcomes);
+    const prices = parsePrices(m.outcomePrices);
+    const options: OutcomeOption[] = labels.length > 0
+      ? labels.map((label, i) => ({ label, price: Math.round((prices[i] ?? 0) * 100) }))
+      : [{ label: 'Yes', price: 0 }, { label: 'No', price: 0 }];
+    setOutcomeOptions(options);
     onChange({ ...config, marketSlug: m.slug, outcomeIndex: '0' });
     setSearchQuery('');
     setOpen(false);
     setResults([]);
   }
+
+  const selectedOutcome = outcomeOptions[parseInt(config.outcomeIndex ?? '0', 10)] ?? outcomeOptions[0];
 
   return (
     <div className="space-y-4" ref={containerRef} style={{ position: 'relative' }}>
@@ -89,11 +111,8 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
             if (text) { setSearchQuery(text); search(text); }
           }}
           onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Search or paste a Polymarket URL…"
+          placeholder="Search markets…"
         />
-        <p className="mt-1 text-xs text-white/30">
-          Paste a URL like <span className="text-blue-400 font-mono">polymarket.com/event/slug</span> or search by name
-        </p>
 
         {open && results.length > 0 && (
           <PolymarketSearch results={results} onSelect={selectMarket} />
@@ -117,19 +136,18 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
       </div>
 
       <div>
-        <Label htmlFor="poly-outcome">Outcome Index</Label>
-        <input
+        <Label htmlFor="poly-outcome">Outcome</Label>
+        <select
           id="poly-outcome"
-          type="number"
-          min="0"
-          step="1"
           value={config.outcomeIndex}
           onChange={e => set('outcomeIndex', e.target.value)}
-          placeholder="0"
-        />
-        <p className="mt-1 text-xs text-white/30">
-          0 = Yes, 1 = No (check market for multi-outcome order)
-        </p>
+        >
+          {outcomeOptions.map((o, i) => (
+            <option key={i} value={String(i)}>
+              {o.label}{o.price > 0 ? ` (${o.price}¢)` : ''}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -160,8 +178,8 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
 
       <Card className="bg-blue-500/5 border-blue-500/15 p-3">
         <p className="text-xs text-blue-400/80">
-          Triggers when outcome #{config.outcomeIndex || '0'} of{' '}
-          <span className="font-semibold font-mono">{config.marketSlug || 'market'}</span> is{' '}
+          Triggers when <span className="font-semibold font-mono">{config.marketSlug || 'market'}</span>{' '}
+          <span className="font-semibold">{selectedOutcome?.label ?? 'Yes'}</span> price is{' '}
           <span className="font-semibold">{config.direction}</span>{' '}
           <span className="font-mono font-semibold">{(parseFloat(config.priceThreshold) * 100).toFixed(0)}¢</span>
         </p>
