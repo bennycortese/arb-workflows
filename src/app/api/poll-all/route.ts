@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     await Promise.allSettled(
       batch.map(wf =>
         evaluateAndNotify(
-          { id: wf.id, nodes: wf.nodes ?? [] },
+          { id: wf.id, nodes: wf.nodes ?? [], edges: wf.edges ?? [] },
           'cron',
           supabase
         )

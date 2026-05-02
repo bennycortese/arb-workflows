@@ -11,9 +11,15 @@ export interface WorkflowNode {
   config: Record<string, string>;
 }
 
+export interface WorkflowEdge {
+  source: string;
+  target: string;
+}
+
 export interface WorkflowLike {
   id: string;
   nodes: WorkflowNode[];
+  edges?: WorkflowEdge[];
 }
 
 export interface RunResult {
@@ -114,17 +120,18 @@ export async function evaluateAndNotify(
   supabase: SupabaseClient | null
 ): Promise<RunResult[]> {
   const results: RunResult[] = [];
-  const marketVars: Record<string, string> = {
-    platform: '', market: '', price: '', threshold: '', direction: '', url: '',
-  };
 
-  let thresholdMet = false;
+  // Keyed by source node ID — only populated when that source triggers a notification
+  const triggeredVars = new Map<string, Record<string, string>>();
 
   // ── Step 1: Evaluate source nodes ──────────────────────────────────────────
   for (const node of workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket')) {
     try {
       let price = 0;
       let title = '';
+      const vars: Record<string, string> = {
+        platform: '', market: '', price: '', threshold: '', direction: '', url: '',
+      };
 
       if (node.type === 'kalshi') {
         const { marketTicker, apiKey: nodeApiKey, priceThreshold, direction } = node.config;
@@ -134,12 +141,12 @@ export async function evaluateAndNotify(
         title = fetched.title;
 
         const threshold = parseFloat(priceThreshold ?? '0.5');
-        marketVars.platform  = 'Kalshi';
-        marketVars.market    = title;
-        marketVars.price     = `${(price * 100).toFixed(0)}¢`;
-        marketVars.threshold = `${(threshold * 100).toFixed(0)}¢`;
-        marketVars.direction = direction ?? 'any';
-        marketVars.url       = `https://kalshi.com/markets/${marketTicker}`;
+        vars.platform  = 'Kalshi';
+        vars.market    = title;
+        vars.price     = `${(price * 100).toFixed(0)}¢`;
+        vars.threshold = `${(threshold * 100).toFixed(0)}¢`;
+        vars.direction = direction ?? 'any';
+        vars.url       = `https://kalshi.com/markets/${marketTicker}`;
 
         const inZone =
           direction === 'any' ||
@@ -151,14 +158,14 @@ export async function evaluateAndNotify(
             workflow.id, node.id, 'kalshi', marketTicker, price, inZone, triggeredBy, supabase
           );
           if (shouldNotify) {
-            thresholdMet = true;
-            results.push({ nodeId: node.id, type: 'kalshi', status: 'ok', message: `${title} at ${marketVars.price} — threshold met` });
+            triggeredVars.set(node.id, vars);
+            results.push({ nodeId: node.id, type: 'kalshi', status: 'ok', message: `${title} at ${vars.price} — threshold met` });
           } else {
-            results.push({ nodeId: node.id, type: 'kalshi', status: 'skip', message: `${title} at ${marketVars.price} — already notified (dedup)` });
+            results.push({ nodeId: node.id, type: 'kalshi', status: 'skip', message: `${title} at ${vars.price} — already notified (dedup)` });
           }
         } else {
           await resolveDedup(workflow.id, node.id, 'kalshi', marketTicker, price, inZone, triggeredBy, supabase);
-          results.push({ nodeId: node.id, type: 'kalshi', status: 'skip', message: `${title} at ${marketVars.price} — threshold not met (${direction} ${marketVars.threshold})` });
+          results.push({ nodeId: node.id, type: 'kalshi', status: 'skip', message: `${title} at ${vars.price} — threshold not met (${direction} ${vars.threshold})` });
         }
       }
 
@@ -170,12 +177,12 @@ export async function evaluateAndNotify(
         title = fetched.title;
 
         const threshold = parseFloat(priceThreshold ?? '0.5');
-        marketVars.platform  = 'Polymarket';
-        marketVars.market    = title;
-        marketVars.price     = `${(price * 100).toFixed(0)}¢`;
-        marketVars.threshold = `${(threshold * 100).toFixed(0)}¢`;
-        marketVars.direction = direction ?? 'any';
-        marketVars.url       = `https://polymarket.com/event/${marketSlug}`;
+        vars.platform  = 'Polymarket';
+        vars.market    = title;
+        vars.price     = `${(price * 100).toFixed(0)}¢`;
+        vars.threshold = `${(threshold * 100).toFixed(0)}¢`;
+        vars.direction = direction ?? 'any';
+        vars.url       = `https://polymarket.com/event/${marketSlug}`;
 
         const inZone =
           direction === 'any' ||
@@ -187,14 +194,14 @@ export async function evaluateAndNotify(
             workflow.id, node.id, 'polymarket', marketSlug, price, inZone, triggeredBy, supabase
           );
           if (shouldNotify) {
-            thresholdMet = true;
-            results.push({ nodeId: node.id, type: 'polymarket', status: 'ok', message: `${title} (${fetched.outcomeLabel}) at ${marketVars.price} — threshold met` });
+            triggeredVars.set(node.id, vars);
+            results.push({ nodeId: node.id, type: 'polymarket', status: 'ok', message: `${title} (${fetched.outcomeLabel}) at ${vars.price} — threshold met` });
           } else {
-            results.push({ nodeId: node.id, type: 'polymarket', status: 'skip', message: `${title} at ${marketVars.price} — already notified (dedup)` });
+            results.push({ nodeId: node.id, type: 'polymarket', status: 'skip', message: `${title} at ${vars.price} — already notified (dedup)` });
           }
         } else {
           await resolveDedup(workflow.id, node.id, 'polymarket', marketSlug, price, inZone, triggeredBy, supabase);
-          results.push({ nodeId: node.id, type: 'polymarket', status: 'skip', message: `${title} at ${marketVars.price} — threshold not met (${direction} ${marketVars.threshold})` });
+          results.push({ nodeId: node.id, type: 'polymarket', status: 'skip', message: `${title} at ${vars.price} — threshold not met (${direction} ${vars.threshold})` });
         }
       }
     } catch (err: any) {
@@ -202,33 +209,42 @@ export async function evaluateAndNotify(
     }
   }
 
-  // ── Step 2: Fire action nodes if threshold met ──────────────────────────────
+  // ── Step 2: Fire action nodes — one message per connected triggered source ──
   for (const node of workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email')) {
-    if (!thresholdMet) {
-      results.push({ nodeId: node.id, type: node.type as NodeType, status: 'skip', message: 'Skipped — no threshold was met' });
+    // Determine which triggered sources feed this action node, preserving edge order
+    const connectedTriggeredVars: Record<string, string>[] = workflow.edges && workflow.edges.length > 0
+      ? workflow.edges
+          .filter(e => e.target === node.id && triggeredVars.has(e.source))
+          .map(e => triggeredVars.get(e.source)!)
+      : [...triggeredVars.values()]; // legacy: no edges, use all triggered sources
+
+    if (connectedTriggeredVars.length === 0) {
+      results.push({ nodeId: node.id, type: node.type as NodeType, status: 'skip', message: 'Skipped — no connected threshold was met' });
       continue;
     }
 
-    try {
-      if (node.type === 'discord') {
-        const { webhookUrl, messageTemplate } = node.config;
-        if (!webhookUrl) throw new Error('Webhook URL not configured');
-        await sendDiscord(webhookUrl, fillTemplate(messageTemplate ?? '{{market}} hit {{price}}', marketVars));
-        results.push({ nodeId: node.id, type: 'discord', status: 'ok', message: 'Message sent to Discord' });
-      }
+    for (const vars of connectedTriggeredVars) {
+      try {
+        if (node.type === 'discord') {
+          const { webhookUrl, messageTemplate } = node.config;
+          if (!webhookUrl) throw new Error('Webhook URL not configured');
+          await sendDiscord(webhookUrl, fillTemplate(messageTemplate ?? '{{market}} hit {{price}}', vars));
+          results.push({ nodeId: node.id, type: 'discord', status: 'ok', message: `Message sent to Discord (${vars.platform}: ${vars.market})` });
+        }
 
-      if (node.type === 'email') {
-        const { toEmail, subject, bodyTemplate } = node.config;
-        if (!toEmail) throw new Error('Recipient email not configured');
-        await sendEmail(
-          toEmail,
-          fillTemplate(subject ?? 'ArbFlow Alert', marketVars),
-          fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', marketVars)
-        );
-        results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail}` });
+        if (node.type === 'email') {
+          const { toEmail, subject, bodyTemplate } = node.config;
+          if (!toEmail) throw new Error('Recipient email not configured');
+          await sendEmail(
+            toEmail,
+            fillTemplate(subject ?? 'ArbFlow Alert', vars),
+            fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', vars)
+          );
+          results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail} (${vars.platform}: ${vars.market})` });
+        }
+      } catch (err: any) {
+        results.push({ nodeId: node.id, type: node.type as NodeType, status: 'error', message: err.message });
       }
-    } catch (err: any) {
-      results.push({ nodeId: node.id, type: node.type as NodeType, status: 'error', message: err.message });
     }
   }
 
