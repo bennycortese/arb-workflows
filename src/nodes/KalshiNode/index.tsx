@@ -82,21 +82,6 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   return (
     <div className="space-y-4" ref={containerRef} style={{ position: 'relative' }}>
       <div>
-        <Label htmlFor="kalshi-apikey">API Key</Label>
-        <input
-          id="kalshi-apikey"
-          type="text"
-          value={config.apiKey}
-          onChange={e => set('apiKey', e.target.value)}
-          placeholder="kalshi_live_..."
-          className="font-mono text-sm"
-        />
-        <p className="mt-1 text-xs text-white/30">
-          Find your key at <span className="text-cyan-400">kalshi.com/account/api</span>
-        </p>
-      </div>
-
-      <div>
         <Label>Market Ticker</Label>
         <input
           type="text"
