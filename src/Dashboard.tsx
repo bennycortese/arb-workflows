@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './@/components/ui/button';
 import {
-  workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode,
+  workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode, WorkflowEdge,
   workflowsLoadedAtom, saveWorkflowAtom, deleteWorkflowAtom,
 } from './atoms';
 
@@ -21,12 +21,9 @@ const NODE_META: Record<string, { color: string; accent: string; label: string }
 };
 
 // ─── Mini canvas ──────────────────────────────────────────────────────────────
-function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
+function MiniCanvas({ nodes, edges }: { nodes: WorkflowNode[]; edges?: WorkflowEdge[] }) {
   const t = useTranslations('dashboard');
-  const W = 240, H = 88, nodeW = 58, nodeH = 26, gapX = 22;
-  const y = (H - nodeH) / 2;
-  const totalW = nodes.length * nodeW + Math.max(0, nodes.length - 1) * gapX;
-  const startX = Math.max(8, (W - totalW) / 2);
+  const W = 240, nodeW = 62, nodeH = 26, padX = 18, rowGap = 10, padY = 14;
 
   if (nodes.length === 0) {
     return (
@@ -39,6 +36,69 @@ function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
     );
   }
 
+  const sources = nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket');
+  const actions = nodes.filter(n => n.type === 'discord' || n.type === 'email');
+
+  // Single-column layout when only one side is populated
+  if (sources.length === 0 || actions.length === 0) {
+    const all = [...sources, ...actions];
+    const gapX = 22;
+    const totalW = all.length * nodeW + Math.max(0, all.length - 1) * gapX;
+    const startX = Math.max(8, (W - totalW) / 2);
+    const H = 88;
+    const y = (H - nodeH) / 2;
+    return (
+      <div className="mini-canvas">
+        <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="arrowhead" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0 0 L5 2.5 L0 5z" fill="rgba(255,255,255,0.2)" />
+            </marker>
+          </defs>
+          {all.map((node, i) => {
+            const x = startX + i * (nodeW + gapX);
+            const meta = NODE_META[node.type] ?? { color: '#94a3b8', accent: 'rgba(148,163,184,0.18)', label: node.type };
+            return (
+              <g key={node.id}>
+                {i > 0 && (
+                  <line x1={x - gapX + 3} y1={y + nodeH / 2} x2={x - 3} y2={y + nodeH / 2}
+                    stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)" />
+                )}
+                <rect x={x} y={y} width={nodeW} height={nodeH} rx={7}
+                  fill={meta.accent} stroke={meta.color} strokeWidth="1" strokeOpacity={0.6} />
+                <text x={x + nodeW / 2} y={y + nodeH / 2 + 4} textAnchor="middle" fill={meta.color}
+                  fontSize="7.5" fontWeight="700" fontFamily="Inter, -apple-system, sans-serif" letterSpacing="0.8">
+                  {meta.label.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  }
+
+  // Two-column layout: sources left, actions right
+  const rowCount = Math.max(sources.length, actions.length);
+  const rowH = nodeH + rowGap;
+  const H = Math.max(88, rowCount * rowH - rowGap + padY * 2);
+
+  const srcX = padX;
+  const actX = W - padX - nodeW;
+
+  function colY(count: number, i: number) {
+    const totalH = count * rowH - rowGap;
+    return (H - totalH) / 2 + i * rowH;
+  }
+
+  const posMap = new Map<string, { x: number; y: number }>();
+  sources.forEach((n, i) => posMap.set(n.id, { x: srcX, y: colY(sources.length, i) }));
+  actions.forEach((n, i) => posMap.set(n.id, { x: actX, y: colY(actions.length, i) }));
+
+  const edgesToDraw: { source: string; target: string }[] = edges && edges.length > 0
+    ? edges.filter(e => posMap.has(e.source) && posMap.has(e.target))
+    : sources.flatMap(s => actions.map(a => ({ source: s.id, target: a.id })));
+
   return (
     <div className="mini-canvas">
       <svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
@@ -47,37 +107,33 @@ function MiniCanvas({ nodes }: { nodes: WorkflowNode[] }) {
             <path d="M0 0 L5 2.5 L0 5z" fill="rgba(255,255,255,0.2)" />
           </marker>
         </defs>
-        {nodes.slice(0, 4).map((node, i) => {
-          const x = startX + i * (nodeW + gapX);
+        {edgesToDraw.map((e, i) => {
+          const src = posMap.get(e.source);
+          const tgt = posMap.get(e.target);
+          if (!src || !tgt) return null;
+          return (
+            <line key={i}
+              x1={src.x + nodeW} y1={src.y + nodeH / 2}
+              x2={tgt.x - 3}     y2={tgt.y + nodeH / 2}
+              stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)"
+            />
+          );
+        })}
+        {[...sources, ...actions].map(node => {
+          const pos = posMap.get(node.id);
+          if (!pos) return null;
           const meta = NODE_META[node.type] ?? { color: '#94a3b8', accent: 'rgba(148,163,184,0.18)', label: node.type };
           return (
             <g key={node.id}>
-              {i > 0 && (
-                <line
-                  x1={x - gapX + 3} y1={y + nodeH / 2}
-                  x2={x - 3}        y2={y + nodeH / 2}
-                  stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" markerEnd="url(#arrowhead)"
-                />
-              )}
-              <rect x={x} y={y} width={nodeW} height={nodeH} rx={7}
+              <rect x={pos.x} y={pos.y} width={nodeW} height={nodeH} rx={7}
                 fill={meta.accent} stroke={meta.color} strokeWidth="1" strokeOpacity={0.6} />
-              <text
-                x={x + nodeW / 2} y={y + nodeH / 2 + 4}
-                textAnchor="middle" fill={meta.color}
-                fontSize="7.5" fontWeight="700"
-                fontFamily="Inter, -apple-system, sans-serif" letterSpacing="0.8"
-              >
+              <text x={pos.x + nodeW / 2} y={pos.y + nodeH / 2 + 4} textAnchor="middle" fill={meta.color}
+                fontSize="7.5" fontWeight="700" fontFamily="Inter, -apple-system, sans-serif" letterSpacing="0.8">
                 {meta.label.toUpperCase()}
               </text>
             </g>
           );
         })}
-        {nodes.length > 4 && (
-          <text x={W - 6} y={y + nodeH / 2 + 4} textAnchor="end"
-            fill="rgba(255,255,255,0.25)" fontSize="8" fontFamily="Inter, sans-serif">
-            +{nodes.length - 4}
-          </text>
-        )}
       </svg>
     </div>
   );
@@ -97,7 +153,7 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
   return (
     <div className="workflow-card group" onClick={onOpen}>
       <div className="wf-canvas-area">
-        <MiniCanvas nodes={workflow.nodes} />
+        <MiniCanvas nodes={workflow.nodes} edges={workflow.edges} />
         <span className={`wf-status-badge ${isError ? 'badge-error' : isLive ? 'badge-live' : 'badge-paused'}`}>
           {isError ? t('statusError') : isLive ? t('statusLive') : t('statusPaused')}
         </span>
