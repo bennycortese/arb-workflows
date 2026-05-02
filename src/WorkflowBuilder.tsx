@@ -329,37 +329,32 @@ function DiscordCanvasNode({ id, data }: NodeProps) {
 
   if (!node) return null;
 
-  const sourceNode = workflow?.nodes.find(n => n.type === 'kalshi' || n.type === 'polymarket');
-  let previewVars: Record<string, string> | undefined;
-  if (sourceNode?.type === 'kalshi') {
-    const cfg = sourceNode.config as KalshiConfig;
-    const t = (parseFloat(cfg.priceThreshold || '0.5') * 100).toFixed(0);
-    previewVars = {
-      platform: 'Kalshi',
-      market: cfg.marketTicker || 'MARKET',
-      price: '??¢',
-      threshold: `${t}¢`,
-      direction: cfg.direction,
-      url: cfg.marketTicker ? `https://kalshi.com/markets/${cfg.marketTicker}` : '',
-    };
-  } else if (sourceNode?.type === 'polymarket') {
+  const connectedSourceIds = new Set(
+    (workflow?.edges ?? []).filter(e => e.target === id).map(e => e.source)
+  );
+  const sourceNodes = connectedSourceIds.size > 0
+    ? (workflow?.edges ?? [])
+        .filter(e => e.target === id)
+        .map(e => workflow?.nodes.find(n => n.id === e.source))
+        .filter((n): n is WorkflowNode => n !== undefined && (n.type === 'kalshi' || n.type === 'polymarket'))
+    : (workflow?.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket') ?? []);
+
+  const previewVarsList: Record<string, string>[] = sourceNodes.map(sourceNode => {
+    if (sourceNode.type === 'kalshi') {
+      const cfg = sourceNode.config as KalshiConfig;
+      const t = (parseFloat(cfg.priceThreshold || '0.5') * 100).toFixed(0);
+      return { platform: 'Kalshi', market: cfg.marketTicker || 'MARKET', price: '??¢', threshold: `${t}¢`, direction: cfg.direction, url: cfg.marketTicker ? `https://kalshi.com/markets/${cfg.marketTicker}` : '' };
+    }
     const cfg = sourceNode.config as PolymarketConfig;
     const t = (parseFloat(cfg.priceThreshold || '0.5') * 100).toFixed(0);
-    previewVars = {
-      platform: 'Polymarket',
-      market: cfg.marketSlug || 'market-slug',
-      price: '??¢',
-      threshold: `${t}¢`,
-      direction: cfg.direction,
-      url: cfg.marketSlug ? `https://polymarket.com/event/${cfg.marketSlug}` : '',
-    };
-  }
+    return { platform: 'Polymarket', market: cfg.marketSlug || 'market-slug', price: '??¢', threshold: `${t}¢`, direction: cfg.direction, url: cfg.marketSlug ? `https://polymarket.com/event/${cfg.marketSlug}` : '' };
+  });
 
   return (
     <CanvasNodeShell
       id={id} isSource={false} accentColor="#818cf8"
       header={<DiscordNodeHeader />}
-      configPanel={<DiscordNodeConfig config={node.config as DiscordConfig} onChange={updateConfig} previewVars={previewVars} />}
+      configPanel={<DiscordNodeConfig config={node.config as DiscordConfig} onChange={updateConfig} previewVarsList={previewVarsList.length > 0 ? previewVarsList : undefined} />}
     />
   );
 }

@@ -11,12 +11,12 @@ import { Card } from '@/components/ui/card';
 interface Props {
   config: DiscordConfig;
   onChange: (config: DiscordConfig) => void;
-  previewVars?: Record<string, string>;
+  previewVarsList?: Record<string, string>[];
 }
 
 const VARS = ['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}'];
 
-export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
+export function DiscordNodeConfig({ config, onChange, previewVarsList }: Props) {
   const set = (key: keyof DiscordConfig, value: string) =>
     onChange({ ...config, [key]: value });
 
@@ -62,14 +62,19 @@ export function DiscordNodeConfig({ config, onChange, previewVars }: Props) {
         </div>
       </div>
 
-      <Card className="bg-indigo-500/5 border-indigo-500/15 p-3">
-        <p className="text-xs text-indigo-400/70 leading-relaxed">
-          Preview:{' '}
-          <span className="text-indigo-300">
-            {fillTemplate(config.messageTemplate, previewVars ?? PREVIEW_VARS)}
-          </span>
-        </p>
-      </Card>
+      {(previewVarsList && previewVarsList.length > 0 ? previewVarsList : [PREVIEW_VARS]).map((vars, i) => (
+        <Card key={i} className="bg-indigo-500/5 border-indigo-500/15 p-3">
+          <p className="text-xs text-indigo-400/70 leading-relaxed">
+            {previewVarsList && previewVarsList.length > 1 && (
+              <span className="text-indigo-400/50 font-mono mr-1">#{i + 1}</span>
+            )}
+            Preview:{' '}
+            <span className="text-indigo-300">
+              {fillTemplate(config.messageTemplate, vars)}
+            </span>
+          </p>
+        </Card>
+      ))}
     </div>
   );
 }
