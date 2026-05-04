@@ -31,7 +31,9 @@
       "Bash(git commit:*)",
       "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/*.md)",
       "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/.env*)",
-      "Bash(supabase --version)"
+      "Bash(supabase --version)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\\\\.next\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Cleared .next cache\")"
     ]
   }
 }
