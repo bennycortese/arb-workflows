@@ -33,7 +33,10 @@
       "Bash(ls C:/Users/antho/benny_stuff/arb-workflow/.env*)",
       "Bash(supabase --version)",
       "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\\\\.next\" -ErrorAction SilentlyContinue)",
-      "Bash(Write-Host \"Cleared .next cache\")"
+      "Bash(Write-Host \"Cleared .next cache\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\" -Recurse -Directory)",
+      "Bash(Select-Object -First 50)",
+      "Bash(npm test *)"
     ]
   }
 }
