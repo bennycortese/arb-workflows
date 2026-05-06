@@ -94,9 +94,10 @@ export class KalshiWSManager {
     const ticker: string = msg.msg?.market_ticker;
     if (!ticker) return;
 
-    // yes_bid is in cents (integer) — convert to fraction
-    const yesBid: number = msg.msg?.yes_bid ?? 0;
-    const price = yesBid / 100;
+    // last_price fires on every trade; yes_bid only fires on orderbook changes
+    // (bid-only was causing slow/missed updates on thin 15-min markets)
+    const rawPrice: number = msg.msg?.last_price ?? msg.msg?.yes_bid ?? 0;
+    const price = rawPrice / 100;
 
     const entries = this.subs.get(ticker.toUpperCase());
     if (!entries) return;
