@@ -102,20 +102,24 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
     <div className="space-y-4" ref={containerRef} style={{ position: 'relative' }}>
       <div>
         <Label>Market</Label>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          onPaste={e => {
-            const text = e.clipboardData.getData('text').trim();
-            if (text) { setSearchQuery(text); search(text); }
-          }}
-          onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Search markets…"
-        />
+        {!config.marketSlug && (
+          <>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onPaste={e => {
+                const text = e.clipboardData.getData('text').trim();
+                if (text) { setSearchQuery(text); search(text); }
+              }}
+              onFocus={() => results.length > 0 && setOpen(true)}
+              placeholder="Search markets…"
+            />
 
-        {open && results.length > 0 && (
-          <PolymarketSearch results={results} onSelect={selectMarket} />
+            {open && results.length > 0 && (
+              <PolymarketSearch results={results} onSelect={selectMarket} />
+            )}
+          </>
         )}
 
         {config.marketSlug && (
