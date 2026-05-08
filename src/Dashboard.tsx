@@ -402,7 +402,10 @@ export default function Dashboard() {
         <div className="db-canvas">
           {!loaded ? (
             <div className="empty-state">
-              <p className="text-white/30 text-sm">Loading workflows…</p>
+              <div className="flex items-center gap-2 text-white/35 text-sm">
+                <span className="w-4 h-4 border border-white/20 border-t-white/50 rounded-full animate-spin flex-shrink-0" />
+                Loading workflows…
+              </div>
             </div>
           ) : workflows.length === 0 ? (
             <EmptyState onCreate={() => setCreating(true)} />

@@ -590,9 +590,19 @@ export default function WorkflowBuilder() {
   if (!workflow) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center flex-col gap-4">
-        <p className="text-white/50">{fetchingWorkflow ? 'Loading…' : t('workflowNotFound')}</p>
-        {!fetchingWorkflow && (
-          <Button variant="outline" onClick={() => router.push('/dashboard')}>{t('backButton')}</Button>
+        {fetchingWorkflow ? (
+          <div className="flex items-center gap-2 text-white/40">
+            <span className="w-4 h-4 border border-white/20 border-t-white/60 rounded-full animate-spin" />
+            <span>Loading…</span>
+          </div>
+        ) : (
+          <>
+            <p className="text-white/50">{t('workflowNotFound')}</p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>{t('retry') ?? 'Retry'}</Button>
+              <Button variant="outline" onClick={() => router.push('/dashboard')}>{t('backButton')}</Button>
+            </div>
+          </>
         )}
       </div>
     );

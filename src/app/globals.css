@@ -730,6 +730,8 @@
 .wfb-log-entries {
   overflow-y: auto;
   padding: 8px 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .wfb-log-row {

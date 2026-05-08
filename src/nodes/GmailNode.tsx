@@ -18,6 +18,10 @@ export function GmailNodeConfig({ config, onChange }: Props) {
   const set = (key: keyof EmailConfig, value: string) =>
     onChange({ ...config, [key]: value });
 
+  const emailError = config.toEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.toEmail)
+    ? 'Enter a valid email address'
+    : null;
+
   return (
     <div className="space-y-4">
       <div>
@@ -29,6 +33,9 @@ export function GmailNodeConfig({ config, onChange }: Props) {
           onChange={e => set('toEmail', e.target.value)}
           placeholder="you@example.com"
         />
+        {emailError && (
+          <p className="mt-1 text-xs text-red-400/80">{emailError}</p>
+        )}
       </div>
 
       <div>
@@ -60,7 +67,10 @@ export function GmailNodeConfig({ config, onChange }: Props) {
               variant="ghost"
               size="sm"
               className="font-mono text-[11px] h-6 px-2 border border-white/[0.08] text-white/40 hover:text-white/70"
-              onClick={() => set('bodyTemplate', config.bodyTemplate + v)}
+              onClick={() => {
+                const sep = config.bodyTemplate && !/\s$/.test(config.bodyTemplate) ? ' ' : '';
+                set('bodyTemplate', config.bodyTemplate + sep + v);
+              }}
             >
               {v}
             </Button>

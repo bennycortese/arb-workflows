@@ -22,7 +22,7 @@ function Navbar() {
             </svg>
           </div>
           <span className="font-semibold text-white text-sm tracking-tight">{t('brand')}</span>
-          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1">{t('beta')}</span>
+          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1" title="Early access — features and pricing may change">{t('beta')}</span>
         </div>
         <div className="flex items-center gap-2">
           <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
@@ -94,18 +94,21 @@ function Hero() {
         </div>
 
         {/* Mini market ticker */}
-        <div className="mt-16 flex items-center justify-center gap-4 flex-wrap">
-          {[
-            { label: 'Fed rate cut by June', price: '58¢', change: '+4', color: 'text-emerald-400' },
-            { label: 'US recession in 2025', price: '35¢', change: '+2', color: 'text-emerald-400' },
-            { label: 'S&P 500 above 5,500 EOY', price: '44¢', change: '-3', color: 'text-red-400' },
-          ].map(m => (
-            <div key={m.label} className="glass-card px-4 py-2.5 rounded-lg flex items-center gap-3">
-              <span className="text-xs text-white/40">{m.label}</span>
-              <span className="font-mono font-semibold text-sm text-white">{m.price}</span>
-              <span className={`font-mono text-xs ${m.color}`}>{m.change}</span>
-            </div>
-          ))}
+        <div className="mt-16 flex flex-col items-center gap-3">
+          <span className="text-[10px] uppercase tracking-widest text-white/20 font-semibold">Example markets</span>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            {[
+              { label: 'Fed rate cut by June', price: '58¢', change: '+4', color: 'text-emerald-400' },
+              { label: 'US recession in 2025', price: '35¢', change: '+2', color: 'text-emerald-400' },
+              { label: 'S&P 500 above 5,500 EOY', price: '44¢', change: '-3', color: 'text-red-400' },
+            ].map(m => (
+              <div key={m.label} className="glass-card px-4 py-2.5 rounded-lg flex items-center gap-3">
+                <span className="text-xs text-white/40">{m.label}</span>
+                <span className="font-mono font-semibold text-sm text-white">{m.price}</span>
+                <span className={`font-mono text-xs ${m.color}`}>{m.change}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

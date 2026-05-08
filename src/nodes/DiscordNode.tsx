@@ -20,6 +20,10 @@ export function DiscordNodeConfig({ config, onChange, previewVarsList }: Props) 
   const set = (key: keyof DiscordConfig, value: string) =>
     onChange({ ...config, [key]: value });
 
+  const webhookError = config.webhookUrl && !config.webhookUrl.startsWith('https://discord.com/api/webhooks/')
+    ? 'Must be a Discord webhook URL (discord.com/api/webhooks/…)'
+    : null;
+
   return (
     <div className="space-y-4">
       <div>
@@ -31,9 +35,13 @@ export function DiscordNodeConfig({ config, onChange, previewVarsList }: Props) 
           onChange={e => set('webhookUrl', e.target.value)}
           placeholder="https://discord.com/api/webhooks/..."
         />
-        <p className="mt-1 text-xs text-white/30">
-          Server Settings → Integrations → Webhooks → New Webhook
-        </p>
+        {webhookError ? (
+          <p className="mt-1 text-xs text-red-400/80">{webhookError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-white/30">
+            Server Settings → Integrations → Webhooks → New Webhook
+          </p>
+        )}
       </div>
 
       <div>
@@ -54,7 +62,10 @@ export function DiscordNodeConfig({ config, onChange, previewVarsList }: Props) 
               variant="ghost"
               size="sm"
               className="font-mono text-[11px] h-6 px-2 border border-white/[0.08] text-white/40 hover:text-white/70"
-              onClick={() => set('messageTemplate', config.messageTemplate + v)}
+              onClick={() => {
+                const sep = config.messageTemplate && !/\s$/.test(config.messageTemplate) ? ' ' : '';
+                set('messageTemplate', config.messageTemplate + sep + v);
+              }}
             >
               {v}
             </Button>
