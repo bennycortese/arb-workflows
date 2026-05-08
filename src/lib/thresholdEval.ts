@@ -40,7 +40,7 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
   const apiKey = process.env.AGENT_MAIL_API_KEY;
   if (!apiKey) throw new Error('AGENT_MAIL_API_KEY not set in server env');
 
-  const resp = await fetch('https://api.agentmail.to/v0/inboxes/arbworflow@agentmail.to/messages/send', {
+  const resp = await fetch('https://api.agentmail.to/v0/inboxes/arbworkflow@agentmail.to/messages/send', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
