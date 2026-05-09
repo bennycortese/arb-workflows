@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, SignInButton } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
@@ -32,9 +32,9 @@ function Navbar() {
               {t('dashboard')}
             </Button>
           ) : (
-            <SignInButton mode="modal">
-              <Button variant="primary" size="sm">{t('getStarted')}</Button>
-            </SignInButton>
+            <Button variant="primary" size="sm" onClick={() => router.push('/pricing')}>
+              {t('getStarted')}
+            </Button>
           )}
         </div>
       </div>
@@ -83,9 +83,9 @@ function Hero() {
             </Button>
           ) : (
             <>
-              <SignInButton mode="modal">
-                <Button variant="primary" size="lg">{t('ctaPrimary')}</Button>
-              </SignInButton>
+              <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
+                {t('ctaPrimary')}
+              </Button>
               <Button variant="outline" size="lg" asChild>
                 <a href="#how-it-works">{t('ctaSecondary')}</a>
               </Button>
@@ -294,9 +294,9 @@ function CTA() {
             {t('openDashboard')}
           </Button>
         ) : (
-          <SignInButton mode="modal">
-            <Button variant="primary" size="lg">{t('ctaFree')}</Button>
-          </SignInButton>
+          <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
+            {t('ctaFree')}
+          </Button>
         )}
       </div>
     </section>

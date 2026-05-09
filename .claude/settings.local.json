@@ -36,7 +36,9 @@
       "Bash(Write-Host \"Cleared .next cache\")",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\" -Recurse -Directory)",
       "Bash(Select-Object -First 50)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }
