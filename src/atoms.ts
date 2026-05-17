@@ -1,7 +1,7 @@
 import { atom } from 'jotai';
 import { v4 as uuidv4 } from 'uuid';
 
-export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email';
+export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email' | 'sms';
 
 export interface KalshiConfig {
   apiKey: string;
@@ -28,7 +28,12 @@ export interface EmailConfig {
   bodyTemplate: string;
 }
 
-export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | EmailConfig;
+export interface SmsConfig {
+  toPhone: string;
+  messageTemplate: string;
+}
+
+export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | EmailConfig | SmsConfig;
 
 export interface WorkflowNode {
   id: string;
@@ -81,12 +86,18 @@ export const defaultEmailConfig: EmailConfig = {
   bodyTemplate: 'Market: {{market}}\nCurrent price: {{price}}\nThreshold: {{threshold}}\nDirection: {{direction}}\nPlatform: {{platform}}',
 };
 
+export const defaultSmsConfig: SmsConfig = {
+  toPhone: '',
+  messageTemplate: 'ArbFlow: {{market}} crossed {{threshold}} — now {{price}} on {{platform}}. {{url}}',
+};
+
 function makeDefaultConfig(type: NodeType): NodeConfig {
   switch (type) {
-    case 'kalshi': return { ...defaultKalshiConfig };
+    case 'kalshi':     return { ...defaultKalshiConfig };
     case 'polymarket': return { ...defaultPolymarketConfig };
-    case 'discord': return { ...defaultDiscordConfig };
-    case 'email': return { ...defaultEmailConfig };
+    case 'discord':    return { ...defaultDiscordConfig };
+    case 'email':      return { ...defaultEmailConfig };
+    case 'sms':        return { ...defaultSmsConfig };
   }
 }
 

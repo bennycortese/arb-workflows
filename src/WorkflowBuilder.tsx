@@ -25,7 +25,7 @@ import '@xyflow/react/dist/style.css';
 import {
   workflowsAtom, activeWorkflowIdAtom,
   WorkflowNode, NodeType, createNode,
-  KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, NodeConfig,
+  KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, SmsConfig, NodeConfig,
   saveWorkflowAtom,
 } from './atoms';
 import { useSetAtom } from 'jotai';
@@ -33,6 +33,7 @@ import { KalshiNodeConfig, KalshiNodeHeader } from './nodes/KalshiNode';
 import { PolymarketNodeConfig, PolymarketNodeHeader } from './nodes/PolymarketNode';
 import { DiscordNodeConfig, DiscordNodeHeader } from './nodes/DiscordNode';
 import { GmailNodeConfig, GmailNodeHeader } from './nodes/GmailNode';
+import { SmsNodeConfig, SmsNodeHeader } from './nodes/SmsNode';
 import { WorkflowGraph } from './lib/workflowGraph';
 
 // ── Node type picker ──────────────────────────────────────────────────────────
@@ -41,6 +42,7 @@ const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source'
   { type: 'polymarket', label: 'Polymarket', desc: 'Read market prices',  role: 'source', color: '#60a5fa' },
   { type: 'discord',   label: 'Discord',    desc: 'Post to channel',      role: 'action', color: '#818cf8' },
   { type: 'email',     label: 'Email',      desc: 'Send email',           role: 'action', color: '#f87171' },
+  { type: 'sms',       label: 'SMS',        desc: 'Send text message',    role: 'action', color: '#4ade80' },
 ];
 
 function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClose: () => void }) {
@@ -366,11 +368,25 @@ function GmailCanvasNode({ id, data }: NodeProps) {
   );
 }
 
+function SmsCanvasNode({ id, data }: NodeProps) {
+  const workflowId = (data as { workflowId: string }).workflowId;
+  const { node, updateConfig } = useNodeConfig(id, workflowId);
+  if (!node) return null;
+  return (
+    <CanvasNodeShell
+      id={id} isSource={false} accentColor="#4ade80"
+      header={<SmsNodeHeader />}
+      configPanel={<SmsNodeConfig config={node.config as SmsConfig} onChange={updateConfig} />}
+    />
+  );
+}
+
 const nodeTypes = {
   kalshi:     KalshiCanvasNode,
   polymarket: PolymarketCanvasNode,
   discord:    DiscordCanvasNode,
   email:      GmailCanvasNode,
+  sms:        SmsCanvasNode,
 };
 
 // ── Edge factory ──────────────────────────────────────────────────────────────

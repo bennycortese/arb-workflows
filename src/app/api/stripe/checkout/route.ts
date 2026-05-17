@@ -7,6 +7,10 @@ export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Billing is not configured yet.' }, { status: 503 });
+  }
+
   const { billing } = await request.json() as { billing: 'monthly' | 'yearly' };
   const priceId = billing === 'yearly'
     ? process.env.STRIPE_PRICE_ID_YEARLY!

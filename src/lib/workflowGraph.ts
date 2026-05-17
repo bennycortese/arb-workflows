@@ -1,5 +1,5 @@
 export const SOURCE_TYPES = new Set(['kalshi', 'polymarket']);
-export const ACTION_TYPES = new Set(['discord', 'email']);
+export const ACTION_TYPES = new Set(['discord', 'email', 'sms']);
 
 export function isSourceType(type: string): boolean { return SOURCE_TYPES.has(type); }
 export function isActionType(type: string): boolean { return ACTION_TYPES.has(type); }

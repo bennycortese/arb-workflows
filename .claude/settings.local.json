@@ -38,7 +38,10 @@
       "Bash(Select-Object -First 50)",
       "Bash(npm test *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\\\\src\\\\nodes\" -File)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\antho\\\\benny_stuff\\\\arb-workflow\" -Depth 2)",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

@@ -29,6 +29,7 @@ export default function PricingPage() {
   const searchParams = useSearchParams();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect already-subscribed users straight to dashboard
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function PricingPage() {
 
   async function handleSubscribe() {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -47,7 +49,13 @@ export default function PricingPage() {
         body: JSON.stringify({ billing }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error ?? 'Something went wrong. Please try again.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -151,6 +159,12 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
+
+            {error && (
+              <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-sm">
+                {error}
+              </div>
+            )}
 
             {isSignedIn ? (
               <Button

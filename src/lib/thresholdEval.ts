@@ -4,7 +4,7 @@ import { WorkflowGraph } from './workflowGraph';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email';
+export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email' | 'sms';
 
 export interface WorkflowNode {
   id: string;
@@ -34,6 +34,17 @@ export async function sendDiscord(webhookUrl: string, content: string): Promise<
     body: JSON.stringify({ content }),
   });
   if (!resp.ok) throw new Error(`Discord webhook failed: ${resp.status} ${resp.statusText}`);
+}
+
+export async function sendSms(to: string, body: string): Promise<void> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken  = process.env.TWILIO_AUTH_TOKEN;
+  const from       = process.env.TWILIO_FROM_NUMBER;
+  if (!accountSid || !authToken || !from) throw new Error('Twilio env vars not set');
+
+  const { default: Twilio } = await import('twilio');
+  const client = Twilio(accountSid, authToken);
+  await client.messages.create({ to, from, body });
 }
 
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
@@ -235,6 +246,13 @@ export async function evaluateAndNotify(
             fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', vars)
           );
           results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail} (${vars.platform}: ${vars.market})` });
+        }
+
+        if (node.type === 'sms') {
+          const { toPhone, messageTemplate } = node.config;
+          if (!toPhone) throw new Error('Phone number not configured');
+          await sendSms(toPhone, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+          results.push({ nodeId: node.id, type: 'sms', status: 'ok', message: `SMS sent to ${toPhone} (${vars.platform}: ${vars.market})` });
         }
       } catch (err: any) {
         results.push({ nodeId: node.id, type: node.type as NodeType, status: 'error', message: err.message });
