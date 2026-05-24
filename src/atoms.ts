@@ -88,7 +88,7 @@ export const defaultEmailConfig: EmailConfig = {
 
 export const defaultSmsConfig: SmsConfig = {
   toPhone: '',
-  messageTemplate: 'ArbFlow: {{market}} crossed {{threshold}} — now {{price}} on {{platform}}. {{url}}',
+  messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} — now {{price}} on {{platform}}. {{url}}',
 };
 
 function makeDefaultConfig(type: NodeType): NodeConfig {
@@ -135,7 +135,7 @@ export const saveWorkflowAtom = atom(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(workflow),
-    }).catch(err => console.error('[arbflow] save failed:', err));
+    }).catch(err => console.error('[marketping] save failed:', err));
   }
 );
 
@@ -144,6 +144,6 @@ export const deleteWorkflowAtom = atom(
   null,
   (_get, _set, workflowId: string) => {
     fetch(`/api/workflows/${workflowId}`, { method: 'DELETE' })
-      .catch(err => console.error('[arbflow] delete failed:', err));
+      .catch(err => console.error('[marketping] delete failed:', err));
   }
 );

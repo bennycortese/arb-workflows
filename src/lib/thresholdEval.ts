@@ -242,7 +242,7 @@ export async function evaluateAndNotify(
           if (!toEmail) throw new Error('Recipient email not configured');
           await sendEmail(
             toEmail,
-            fillTemplate(subject ?? 'ArbFlow Alert', vars),
+            fillTemplate(subject ?? 'MarketPing Alert', vars),
             fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', vars)
           );
           results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail} (${vars.platform}: ${vars.market})` });

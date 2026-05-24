@@ -5,7 +5,7 @@
     "save": "Save"
   },
   "nav": {
-    "brand": "ArbFlow",
+    "brand": "MarketPing",
     "beta": "BETA",
     "nodes": "Nodes",
     "howItWorks": "How it works",
@@ -29,7 +29,7 @@
     "step2Title": "Add actions",
     "step2Body": "Chain Discord webhooks and Gmail notifications. Use template variables to include live market data.",
     "step3Title": "Enable and forget",
-    "step3Body": "Toggle your workflow live. ArbFlow polls the markets and fires alerts the moment your threshold is crossed.",
+    "step3Body": "Toggle your workflow live. MarketPing polls the markets and fires alerts the moment your threshold is crossed.",
     "ctaSectionTitle": "Start automating your edge",
     "ctaSectionSubtitle": "Free to use. No credit card required.",
     "ctaFree": "Get started for free",

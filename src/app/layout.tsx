@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ArbFlow — Prediction Market Automation',
+  title: 'MarketPing — Prediction Market Automation',
   description: 'Connect Kalshi and Polymarket to Discord alerts and email notifications.',
 };
 

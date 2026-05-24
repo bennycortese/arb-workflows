@@ -74,7 +74,7 @@ export default function PricingPage() {
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4" />
               </svg>
             </div>
-            <span className="font-semibold text-white text-sm tracking-tight">ArbFlow</span>
+            <span className="font-semibold text-white text-sm tracking-tight">MarketPing</span>
           </button>
           {isSignedIn && (
             <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
@@ -92,7 +92,7 @@ export default function PricingPage() {
         <div className="relative z-10 max-w-lg w-full text-center">
           <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-6 font-semibold tracking-wide">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse-dot" />
-            ArbFlow Pro
+            MarketPing Pro
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">

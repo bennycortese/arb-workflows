@@ -45,7 +45,7 @@ export function SmsNodeConfig({ config, onChange }: Props) {
           value={config.messageTemplate}
           onChange={e => set('messageTemplate', e.target.value)}
           rows={4}
-          placeholder="ArbFlow: {{market}} crossed {{threshold}} — now {{price}}"
+          placeholder="MarketPing: {{market}} crossed {{threshold}} — now {{price}}"
           className="resize-none font-mono text-xs leading-relaxed"
         />
         <div className="mt-2 flex flex-wrap gap-1.5">

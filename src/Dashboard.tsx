@@ -283,7 +283,7 @@ export default function Dashboard() {
         setLoaded(true);
       })
       .catch(err => {
-        console.error('[arbflow] load failed:', err);
+        console.error('[marketping] load failed:', err);
         setLoaded(true); // don't block UI on error
       });
   }, [loaded, setWorkflows, setLoaded]);
@@ -342,7 +342,7 @@ export default function Dashboard() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="db-logo-text">ArbFlow</span>
+          <span className="db-logo-text">MarketPing</span>
         </button>
 
         <nav className="db-nav">
