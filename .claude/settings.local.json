@@ -44,7 +44,8 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(git push *)",
       "PowerShell(Get-ChildItem -Path C:\\\\Users\\\\antho -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"fellow|backup.auth|auth.backup|kp.fellow\" } | Select-Object FullName -First 20)",
-      "PowerShell(Get-ChildItem -Path C:\\\\Users\\\\antho\\\\Desktop, C:\\\\Users\\\\antho\\\\Documents, C:\\\\Users\\\\antho\\\\Downloads -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"kp|fellow|backup\" } | Select-Object FullName -First 30)"
+      "PowerShell(Get-ChildItem -Path C:\\\\Users\\\\antho\\\\Desktop, C:\\\\Users\\\\antho\\\\Documents, C:\\\\Users\\\\antho\\\\Downloads -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"kp|fellow|backup\" } | Select-Object FullName -First 30)",
+      "Bash(git checkout *)"
     ]
   }
 }
