@@ -88,7 +88,7 @@ export function GmailNodeConfig({ config, onChange }: Props) {
           )}
         </p>
         <p className="text-xs text-white/25">
-          Sent via AgentMail from arbworkflow@agentmail.to
+          Sent via AgentMail from marketping@agentmail.to
         </p>
       </Card>
     </div>
