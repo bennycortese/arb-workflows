@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser, SignInButton, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../../@/components/ui/button';
@@ -22,11 +22,20 @@ const FEATURES = [
   'Priority support',
 ];
 
+function CanceledBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get('canceled') !== 'true') return null;
+  return (
+    <div className="mb-6 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm">
+      Checkout canceled. Your subscription was not activated.
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const { isSignedIn } = useUser();
   const { sessionClaims } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,8 +69,6 @@ export default function PricingPage() {
       setLoading(false);
     }
   }
-
-  const showCanceled = searchParams.get('canceled') === 'true';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -103,11 +110,9 @@ export default function PricingPage() {
             No free tier. No trial. Serious traders only.
           </p>
 
-          {showCanceled && (
-            <div className="mb-6 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm">
-              Checkout canceled. Your subscription was not activated.
-            </div>
-          )}
+          <Suspense>
+            <CanceledBanner />
+          </Suspense>
 
           {/* Billing toggle */}
           <div className="flex items-center justify-center gap-1 mb-8 p-1 rounded-lg bg-white/[0.04] border border-white/[0.06] w-fit mx-auto">
