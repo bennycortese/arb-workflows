@@ -5,3 +5,4 @@
 /worker/node_modules/
 .env
 /.next/
+.vercel
