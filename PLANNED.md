@@ -14,62 +14,60 @@
 - [x] Polymarket source node (slug + outcome + threshold) + market search
 - [x] Discord action node (webhook + message template)
 - [x] Email action node (AgentMail)
-- [x] SMS action node (Twilio) — UI only; worker path incomplete
+- [x] SMS action node (Twilio) — works via app/cron path; worker path does not send SMS
 - [x] Server: proxy Kalshi + Polymarket APIs (auth-protected)
 - [x] Server: run workflow endpoint (fetch prices → check threshold → fire actions)
 - [x] Workflows persisted in Supabase, scoped by Clerk user ID
 - [x] Threshold dedup via `workflow_market_states` (crossing-based, not time-based)
 - [x] Automated execution: Railway worker (WebSocket) + Vercel cron fallback (5 min)
-- [x] Stripe billing code: checkout, webhook, customer portal routes
+- [x] Stripe billing: checkout, webhook, customer portal routes
+- [x] Stripe ops: env vars configured; API verified ($19/mo + $149/yr prices active)
 - [x] Subscription gate in middleware (Clerk `publicMetadata.subscribed`)
 - [x] Pricing page ($19/mo, $149/yr, paid-only)
-- [x] API route auth (middleware + per-route Clerk checks)
+- [x] API route auth (middleware + per-route Clerk checks; save route IDOR fixed)
+- [x] `SmsNode.tsx` committed to git
+- [x] Production build passes; worker tests pass (55/55)
 
 ---
 
-## Pre-launch blockers
+## Pre-launch (remaining)
 
-These must be done before launch. See also `PRELAUNCH_NEEDS.md`.
+### Copy & UX
 
-### Stripe (ops, not code)
+- [ ] **Fix landing page copy** — `messages/en.json` still says “Start automating free”, “Free to use. No credit card required.”, references Gmail, and says “4 nodes”. Pricing page says paid-only. Align with reality (5 nodes, AgentMail, $19/mo).
+- [ ] **Post-checkout redirect race** — success URL is `/dashboard?success=true` but middleware blocks until webhook sets `subscribed`. Redirect to `/pricing?success=true` and poll session refresh, or show an “activating…” state.
+- [ ] **Billing portal link** — `/api/stripe/portal` exists but dashboard has no “Manage subscription” button.
+- [ ] **Run history UI** — `workflow_runs` logged by cron/worker path; dashboard only shows `lastRun`/`lastStatus`, no alert feed.
 
-The **subscription middleware is implemented** in `src/middleware.ts` — it gates `/dashboard`, `/workflow/*`, and workflow/market API routes on `publicMetadata.subscribed === true`. What’s missing is **Stripe Dashboard + env setup**:
+### Worker / app parity
 
-- [ ] Create Stripe products/prices ($19/mo, $149/yr)
-- [ ] Set env vars in Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_PRICE_ID_YEARLY`
-- [ ] Configure webhook → `/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-- [ ] End-to-end test: subscribe → webhook fires → Clerk metadata updated → dashboard access granted
-- [ ] Fix post-checkout redirect race: success URL is `/dashboard?success=true` but middleware blocks until webhook sets `subscribed` — redirect to `/pricing?success=true` or poll until metadata refreshes
+- [ ] **Unify notification logic** — worker `notifier.ts` fires all discord/email nodes (ignores graph edges); app uses `WorkflowGraph`. Worker also doesn’t send SMS or write to `workflow_runs`.
+- [ ] **Fix AgentMail inbox typo in worker** — `arbworflow@agentmail.to` should be `marketping@agentmail.to` (app already uses correct inbox).
 
-### Security & data
+### Security & infra (lower urgency — app uses service-role key)
 
-- [x] Audit API route auth — middleware no longer marks all `/api/*` public; workflow/kalshi/polymarket routes require auth + subscription
-- [ ] Add Supabase RLS policies — RLS is enabled but no policies exist; add `user_id`-scoped policies on `workflows`, `workflow_market_states`, `workflow_runs`, `subscriptions`
-- [ ] User secrets (Discord webhooks, API keys, phone numbers) stored in plaintext JSONB — encrypt or vault before scaling
+- [ ] **Supabase RLS policies** — RLS enabled on tables but no `CREATE POLICY` statements. Not blocking launch while all DB access goes through server routes with `user_id` checks, but add before exposing Supabase client-side.
+- [ ] **Encrypt user secrets in JSONB** — Discord webhooks, API keys, phone numbers stored in plaintext workflow nodes.
 
-### Product parity & copy
+### Optional integrations (only if you use the feature)
 
-- [ ] Fix landing page copy — `messages/en.json` says “free” / “no credit card”; pricing says paid-only. Align copy.
-- [ ] Update stale landing copy (node count, email provider references)
-- [ ] Unify worker vs app notification logic — worker ignores graph edges, doesn’t support SMS, uses different AgentMail inbox, doesn’t write run history
-- [ ] Fix AgentMail inbox typo in worker (`arbworflow` → `marketping`)
-- [ ] Set up Twilio env vars; confirm SMS works end-to-end from builder + worker
+- [ ] **Twilio env vars** — not in local `.env`; needed only if testing SMS locally.
+- [ ] **KALSHI_API_KEY** — optional; public markets work without it.
 
-### UX gaps
+### Manual verification (do once before launch)
 
-- [ ] Add “Manage subscription” link on dashboard → `/api/stripe/portal`
-- [ ] Run history UI — `workflow_runs` table exists but no alert feed in dashboard
+- [ ] **Stripe webhook e2e** — subscribe with test card → webhook fires (`checkout.session.completed`) → Clerk `publicMetadata.subscribed = true` → dashboard access granted. Code handles the right events; just confirm in Stripe dashboard + live test.
 
 ---
 
 ## Nice-to-have before launch
 
-- [ ] Deploy + verify Railway worker (Kalshi/Polymarket WebSockets, Supabase Realtime)
-- [ ] Error tracking (Sentry or similar) on Next.js app + worker
-- [ ] CI: build, lint, worker tests on push
-- [ ] README / deploy runbook (env vars, migrations, Stripe webhook setup)
+- [ ] Deploy + verify Railway worker (WebSocket feeds, Supabase Realtime)
+- [ ] Error tracking (Sentry) on Next.js app + worker
+- [ ] CI: build + worker tests on push
+- [ ] README / deploy runbook
 - [ ] Health check endpoints (`/api/health`, worker health for Railway)
-- [ ] Rate limiting on workflow runs and market search routes
+- [ ] Rate limiting on workflow runs and market search
 
 ---
 
@@ -77,8 +75,8 @@ The **subscription middleware is implemented** in `src/middleware.ts` — it gat
 
 ### Scheduling / polling
 - [ ] Per-workflow polling interval (currently global 5-min cron)
-- [ ] Time-based debounce (“don’t re-alert for N hours”) — current dedup is threshold-crossing only
-- [ ] Reconcile worker vs cron execution paths (avoid duplicate/missed alerts)
+- [ ] Time-based debounce (“don’t re-alert for N hours”)
+- [ ] Reconcile worker vs cron paths (avoid duplicate/missed alerts)
 
 ### New nodes
 - [ ] **Telegram node** — send message via Bot API
@@ -99,14 +97,14 @@ The **subscription middleware is implemented** in `src/middleware.ts` — it gat
 - [ ] Volume and liquidity fields in template vars
 
 ### UI/UX
-- [ ] Node validation — highlight misconfigured nodes before run
+- [ ] Node validation — highlight misconfigured nodes before run (Run now still excludes SMS from action check)
 - [ ] Dark/light mode toggle
 - [ ] Mobile-responsive workflow builder
-- [ ] In-app notification center (run history, alert feed)
+- [ ] In-app notification center
 - [ ] Browser push notifications
 
 ### Auth & billing (future tiers)
-- [ ] Free tier limits (if desired — currently paid-only per `STRIPE_PLAN.md`)
+- [ ] Free tier limits (currently paid-only per `STRIPE_PLAN.md`)
 
 ### Monitoring
 - [ ] Uptime/health dashboard
