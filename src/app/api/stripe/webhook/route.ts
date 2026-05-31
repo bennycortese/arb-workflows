@@ -3,16 +3,12 @@ import Stripe from 'stripe';
 import { getStripe } from '../../../../lib/stripe';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
 import { getStripeWebhookSecret } from '../../../../lib/stripeConfig';
-import { clerkClient } from '@clerk/nextjs/server';
+import {
+  activateFromCheckoutSession,
+  setClerkSubscribed,
+} from '../../../../lib/stripeSubscription';
 
 export const runtime = 'nodejs';
-
-async function setSubscribed(userId: string, subscribed: boolean) {
-  const clerk = await clerkClient();
-  await clerk.users.updateUserMetadata(userId, {
-    publicMetadata: { subscribed },
-  });
-}
 
 async function upsertSubscription(params: {
   userId: string;
@@ -63,23 +59,11 @@ export async function POST(request: NextRequest) {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId;
-      const customerId = session.customer as string;
-      const subscriptionId = session.subscription as string;
-      if (!userId || !subscriptionId) break;
-
-      const sub = await getStripe().subscriptions.retrieve(subscriptionId);
-      const periodEndTs = sub.items.data[0]?.current_period_end;
-      const periodEnd = periodEndTs ? new Date(periodEndTs * 1000) : null;
-
-      await upsertSubscription({
-        userId,
-        customerId,
-        subscriptionId,
-        status: 'active',
-        currentPeriodEnd: periodEnd,
-      });
-      await setSubscribed(userId, true);
+      try {
+        await activateFromCheckoutSession(session);
+      } catch (err) {
+        console.error('[stripe/webhook] checkout.session.completed:', err);
+      }
       break;
     }
 
@@ -104,7 +88,7 @@ export async function POST(request: NextRequest) {
         status,
         currentPeriodEnd: periodEnd,
       });
-      await setSubscribed(userId, status === 'active');
+      await setClerkSubscribed(userId, status === 'active');
       break;
     }
 
@@ -119,7 +103,7 @@ export async function POST(request: NextRequest) {
         .from('subscriptions')
         .update({ status: 'canceled', stripe_subscription_id: sub.id })
         .eq('user_id', userId);
-      await setSubscribed(userId, false);
+      await setClerkSubscribed(userId, false);
       break;
     }
   }

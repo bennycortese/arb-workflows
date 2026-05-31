@@ -34,48 +34,84 @@ function CanceledBanner() {
 
 function CheckoutSuccessBanner() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { sessionClaims } = useAuth();
+  const { getToken } = useAuth();
   const { session } = useSession();
   const [timedOut, setTimedOut] = useState(false);
+  const [activateError, setActivateError] = useState<string | null>(null);
 
   const isSuccess = searchParams.get('success') === 'true';
-  const subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
+  const sessionId = searchParams.get('session_id');
+
+  function goToDashboard() {
+    window.location.href = '/dashboard';
+  }
 
   useEffect(() => {
-    if (!isSuccess || subscribed) return;
+    if (!isSuccess) return;
 
-    let attempts = 0;
-    const maxAttempts = 15;
+    let cancelled = false;
 
-    const poll = setInterval(async () => {
-      attempts++;
+    async function refreshAuth() {
       try {
         await session?.reload();
       } catch {
-        // ignore reload errors; will retry
+        // fall through to getToken
       }
-      if (attempts >= maxAttempts) {
-        clearInterval(poll);
-        setTimedOut(true);
-      }
-    }, 2000);
-
-    return () => clearInterval(poll);
-  }, [isSuccess, subscribed, session]);
-
-  useEffect(() => {
-    if (isSuccess && subscribed) {
-      router.replace('/dashboard');
+      await getToken({ skipCache: true });
     }
-  }, [isSuccess, subscribed, router]);
 
-  if (!isSuccess || subscribed) return null;
+    async function run() {
+      if (sessionId) {
+        try {
+          const res = await fetch('/api/stripe/confirm-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          });
+          const data = await res.json();
+          if (cancelled) return;
+          if (res.ok) {
+            await refreshAuth();
+            goToDashboard();
+            return;
+          }
+          setActivateError(data.error ?? 'Activation failed');
+        } catch {
+          if (!cancelled) setActivateError('Activation failed');
+        }
+      }
 
-  if (timedOut) {
+      // Fallback: wait for webhook to activate, then hard-redirect
+      for (let attempt = 0; attempt < 8; attempt++) {
+        if (cancelled) return;
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          await refreshAuth();
+        } catch {
+          // ignore
+        }
+        goToDashboard();
+        return;
+      }
+      if (!cancelled) setTimedOut(true);
+    }
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSuccess, sessionId, session, getToken]);
+
+  if (!isSuccess) return null;
+
+  if (activateError || timedOut) {
     return (
-      <div className="mb-6 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm">
-        Payment received — your subscription is still activating. Try refreshing in a minute, or sign out and back in.
+      <div className="mb-6 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm space-y-3">
+        <p>{activateError ?? 'Payment received. Your subscription should be active — continue to the dashboard.'}</p>
+        <Button variant="primary" size="sm" onClick={goToDashboard}>
+          Continue to dashboard
+        </Button>
       </div>
     );
   }
@@ -83,7 +119,7 @@ function CheckoutSuccessBanner() {
   return (
     <div className="mb-6 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-200 text-sm flex items-center gap-3">
       <span className="w-4 h-4 border border-cyan-400/40 border-t-cyan-300 rounded-full animate-spin flex-shrink-0" />
-      Payment successful — activating your subscription…
+      Payment successful — redirecting to your dashboard…
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from './lib/supabase';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -24,8 +25,19 @@ export default clerkMiddleware(async (auth, request) => {
   if (isSubscribedRoute(request)) {
     const { userId, sessionClaims } = await auth();
     if (userId) {
-      const subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed;
-      if (subscribed !== true) {
+      let subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
+
+      // JWT can lag after checkout — trust Supabase if subscription is active
+      if (!subscribed) {
+        const { data } = await getSupabaseAdmin()
+          .from('subscriptions')
+          .select('status')
+          .eq('user_id', userId)
+          .maybeSingle();
+        subscribed = data?.status === 'active';
+      }
+
+      if (!subscribed) {
         if (request.nextUrl.pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Subscription required' }, { status: 403 });
         }
