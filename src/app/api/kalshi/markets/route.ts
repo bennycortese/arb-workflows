@@ -1,6 +1,10 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const ticker = request.nextUrl.searchParams.get('ticker');
     const apiKey = request.headers.get('x-kalshi-api-key');

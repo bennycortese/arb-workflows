@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const BASE = 'https://api.elections.kalshi.com/trade-api/v2';
@@ -38,6 +39,9 @@ async function tryEventTicker(eventTicker: string, apiKey: string | null): Promi
 }
 
 export async function GET(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const q = (request.nextUrl.searchParams.get('q') || '').trim();
     const apiKey = request.headers.get('x-kalshi-api-key');

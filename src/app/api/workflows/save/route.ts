@@ -13,6 +13,17 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
+  const { data: ownedByOther } = await supabase
+    .from('workflows')
+    .select('id')
+    .eq('id', workflow.id)
+    .neq('user_id', userId)
+    .maybeSingle();
+
+  if (ownedByOther) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   const { error } = await supabase.from('workflows').upsert({
     id: workflow.id,
     user_id: userId,

@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const GAMMA = 'https://gamma-api.polymarket.com';
@@ -54,6 +55,9 @@ async function textSearch(q: string): Promise<any[]> {
 }
 
 export async function GET(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   try {
     const raw = (request.nextUrl.searchParams.get('q') || '').trim();
     if (!raw) return NextResponse.json({ markets: [] });
