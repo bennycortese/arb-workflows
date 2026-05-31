@@ -363,6 +363,134 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
+/* ── Run history panel ───────────────────────────────────────────────────── */
+.db-run-history {
+  margin: 0 24px 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.db-run-history-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: left;
+}
+
+.db-run-history-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.db-run-history-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.db-run-history-count {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.db-run-history-chevron {
+  margin-left: auto;
+  color: rgba(255, 255, 255, 0.35);
+  transition: transform 0.15s ease;
+}
+
+.db-run-history-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.db-run-history-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.db-run-history-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.db-run-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.db-run-history-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.db-run-history-item:last-child {
+  border-bottom: none;
+}
+
+.db-run-history-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.db-run-workflow {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.db-run-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.db-run-summary {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.db-run-status {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.db-run-status-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+.db-run-status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.db-run-status-running {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+}
+
 /* ── Canvas area ─────────────────────────────────────────────────────────── */
 .db-canvas {
   flex: 1;

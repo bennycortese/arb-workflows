@@ -59,7 +59,13 @@
     "enableWorkflow": "Enable",
     "disableWorkflow": "Disable",
     "manageSubscription": "Manage subscription",
-    "portalError": "Could not open billing portal. Please try again."
+    "portalError": "Could not open billing portal. Please try again.",
+    "runHistory": "Recent alerts",
+    "runHistoryEmpty": "No automated runs yet. Enable a workflow to start receiving alerts.",
+    "runHistoryLoading": "Loading alert history…",
+    "triggeredManual": "Manual",
+    "triggeredCron": "Cron",
+    "triggeredWorker": "Worker"
   },
   "builder": {
     "backToDashboard": "Back to dashboard",

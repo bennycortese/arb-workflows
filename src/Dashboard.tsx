@@ -203,6 +203,79 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+type RunRecord = {
+  id: string;
+  workflowId: string;
+  workflowName: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: 'success' | 'error' | 'running';
+  triggeredBy: 'manual' | 'worker' | 'cron';
+  results: { type: string; status: string; message: string }[];
+};
+
+function runSummary(run: RunRecord): string {
+  const ok = run.results.filter(r => r.status === 'ok');
+  if (ok.length === 0) return run.results[0]?.message ?? 'No details';
+  return ok.map(r => r.message).join(' · ');
+}
+
+function RunHistoryPanel() {
+  const t = useTranslations('dashboard');
+  const [runs, setRuns] = useState<RunRecord[] | null>(null);
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/workflows/runs?limit=30')
+      .then(r => r.json())
+      .then(data => setRuns(data.runs ?? []))
+      .catch(() => setRuns([]));
+  }, []);
+
+  const triggerLabel = (by: RunRecord['triggeredBy']) => {
+    if (by === 'cron') return t('triggeredCron');
+    if (by === 'worker') return t('triggeredWorker');
+    return t('triggeredManual');
+  };
+
+  return (
+    <div className="db-run-history">
+      <button type="button" className="db-run-history-header" onClick={() => setExpanded(v => !v)}>
+        <span className="db-run-history-title">{t('runHistory')}</span>
+        <span className="db-run-history-count">{runs ? runs.length : '…'}</span>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none"
+          className={`db-run-history-chevron ${expanded ? 'expanded' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {expanded && (
+        <div className="db-run-history-body">
+          {runs === null ? (
+            <p className="db-run-history-empty">{t('runHistoryLoading')}</p>
+          ) : runs.length === 0 ? (
+            <p className="db-run-history-empty">{t('runHistoryEmpty')}</p>
+          ) : (
+            <ul className="db-run-history-list">
+              {runs.map(run => (
+                <li key={run.id} className="db-run-history-item">
+                  <div className="db-run-history-item-top">
+                    <span className={`db-run-status db-run-status-${run.status}`}>{run.status}</span>
+                    <span className="db-run-workflow">{run.workflowName}</span>
+                    <span className="db-run-meta">{triggerLabel(run.triggeredBy)} · {timeAgo(run.startedAt)}</span>
+                  </div>
+                  <p className="db-run-summary">{runSummary(run)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── New workflow modal ────────────────────────────────────────────────────────
 function NewWorkflowModal({ onClose, onCreate }: {
   onClose: () => void;
@@ -421,6 +494,8 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+
+        {loaded && <RunHistoryPanel />}
 
         <div className="db-canvas">
           {!loaded ? (
