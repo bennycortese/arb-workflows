@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useUser, SignInButton, useAuth } from '@clerk/nextjs';
+import { useUser, SignInButton, useAuth, useSession } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../../@/components/ui/button';
 
@@ -32,6 +32,62 @@ function CanceledBanner() {
   );
 }
 
+function CheckoutSuccessBanner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { sessionClaims } = useAuth();
+  const { session } = useSession();
+  const [timedOut, setTimedOut] = useState(false);
+
+  const isSuccess = searchParams.get('success') === 'true';
+  const subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
+
+  useEffect(() => {
+    if (!isSuccess || subscribed) return;
+
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const poll = setInterval(async () => {
+      attempts++;
+      try {
+        await session?.reload();
+      } catch {
+        // ignore reload errors; will retry
+      }
+      if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        setTimedOut(true);
+      }
+    }, 2000);
+
+    return () => clearInterval(poll);
+  }, [isSuccess, subscribed, session]);
+
+  useEffect(() => {
+    if (isSuccess && subscribed) {
+      router.replace('/dashboard');
+    }
+  }, [isSuccess, subscribed, router]);
+
+  if (!isSuccess || subscribed) return null;
+
+  if (timedOut) {
+    return (
+      <div className="mb-6 px-4 py-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-sm">
+        Payment received — your subscription is still activating. Try refreshing in a minute, or sign out and back in.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-200 text-sm flex items-center gap-3">
+      <span className="w-4 h-4 border border-cyan-400/40 border-t-cyan-300 rounded-full animate-spin flex-shrink-0" />
+      Payment successful — activating your subscription…
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const { isSignedIn } = useUser();
   const { sessionClaims } = useAuth();
@@ -40,10 +96,11 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect already-subscribed users straight to dashboard
+  // Redirect already-subscribed users straight to dashboard (skip if post-checkout polling)
   useEffect(() => {
     const subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed;
-    if (isSignedIn && subscribed === true) {
+    const checkoutSuccess = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('success') === 'true';
+    if (isSignedIn && subscribed === true && !checkoutSuccess) {
       router.replace('/dashboard');
     }
   }, [isSignedIn, sessionClaims, router]);
@@ -111,6 +168,7 @@ export default function PricingPage() {
           </p>
 
           <Suspense>
+            <CheckoutSuccessBanner />
             <CanceledBanner />
           </Suspense>
 

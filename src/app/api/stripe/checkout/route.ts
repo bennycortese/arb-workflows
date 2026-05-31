@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     metadata: { userId },
-    success_url: `${origin}/dashboard?success=true`,
+    success_url: `${origin}/pricing?success=true`,
     cancel_url: `${origin}/pricing`,
   });
 
