@@ -272,6 +272,24 @@ export default function Dashboard() {
   const deleteWorkflowRemote = useSetAtom(deleteWorkflowAtom);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  async function openBillingPortal() {
+    setPortalLoading(true);
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(t('portalError'));
+      }
+    } catch {
+      alert(t('portalError'));
+    } finally {
+      setPortalLoading(false);
+    }
+  }
 
   // Load workflows from Supabase on first mount
   useEffect(() => {
@@ -383,9 +401,14 @@ export default function Dashboard() {
               />
             </div>
           </div>
-          <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
-            {t('newWorkflow')}
-          </Button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={openBillingPortal} disabled={portalLoading}>
+              {portalLoading ? '…' : t('manageSubscription')}
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
+              {t('newWorkflow')}
+            </Button>
+          </div>
         </header>
 
         {workflows.length > 0 && (

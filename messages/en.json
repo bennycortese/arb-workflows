@@ -57,7 +57,9 @@
     "statusError": "Error",
     "deleteWorkflow": "Delete workflow",
     "enableWorkflow": "Enable",
-    "disableWorkflow": "Disable"
+    "disableWorkflow": "Disable",
+    "manageSubscription": "Manage subscription",
+    "portalError": "Could not open billing portal. Please try again."
   },
   "builder": {
     "backToDashboard": "Back to dashboard",
