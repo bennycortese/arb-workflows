@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '../../../../lib/stripe';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
+import { getStripeWebhookSecret } from '../../../../lib/stripeConfig';
 import { clerkClient } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
@@ -49,8 +50,12 @@ export async function POST(request: NextRequest) {
   if (!sig) return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
 
   let event: Stripe.Event;
+  const webhookSecret = getStripeWebhookSecret();
+  if (!webhookSecret) {
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
   try {
-    event = getStripe().webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = getStripe().webhooks.constructEvent(body, sig, webhookSecret);
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }

@@ -2,19 +2,24 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '../../../../lib/stripe';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
+import {
+  getStripePriceIdMonthly,
+  getStripePriceIdYearly,
+  isStripeConfigured,
+} from '../../../../lib/stripeConfig';
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!isStripeConfigured()) {
     return NextResponse.json({ error: 'Billing is not configured yet.' }, { status: 503 });
   }
 
   const { billing } = await request.json() as { billing: 'monthly' | 'yearly' };
   const priceId = billing === 'yearly'
-    ? process.env.STRIPE_PRICE_ID_YEARLY!
-    : process.env.STRIPE_PRICE_ID_MONTHLY!;
+    ? getStripePriceIdYearly()!
+    : getStripePriceIdMonthly()!;
 
   const supabase = getSupabaseAdmin();
 
