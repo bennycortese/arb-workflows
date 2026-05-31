@@ -937,24 +937,13 @@
   padding: 0 14px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 13px;
-  cursor: grab;
-}
-.cn-config:active { cursor: grabbing; }
-/* Interactive elements inside config reset to normal cursor */
-.cn-config input,
-.cn-config textarea,
-.cn-config select,
-.cn-config button,
-.cn-config label,
-.cn-config a {
-  cursor: default;
 }
 .cn-config textarea { cursor: text; }
 .cn-config input[type="text"],
 .cn-config input[type="email"],
 .cn-config input[type="url"],
 .cn-config input[type="number"] { cursor: text; }
-.cn-config button { cursor: pointer; }
+.cn-config button:not(:disabled) { cursor: pointer; }
 
 /* ── React Flow overrides ────────────────────────────────────────────────── */
 

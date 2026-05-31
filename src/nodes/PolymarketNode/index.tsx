@@ -6,6 +6,7 @@ import { PolymarketSearch, PolyMarketResult } from './MarketSearch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { DirectionField, OutcomeField } from '../shared/fields';
 
 interface Props {
   config: PolymarketConfig;
@@ -106,8 +107,11 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
           <>
             <input
               type="text"
+              className="nodrag nopan"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onPointerDown={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
               onPaste={e => {
                 const text = e.clipboardData.getData('text').trim();
                 if (text) { setSearchQuery(text); search(text); }
@@ -128,8 +132,10 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
             <span className="text-[10px] font-mono text-blue-400/90 flex-1 truncate">{config.marketSlug}</span>
             <button
               type="button"
+              className="nodrag nopan text-white/20 hover:text-white/50 transition-colors flex-shrink-0"
               onClick={() => set('marketSlug', '')}
-              className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0"
+              onPointerDown={e => e.stopPropagation()}
+              onMouseDown={e => e.stopPropagation()}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -139,45 +145,33 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
         )}
       </div>
 
-      <div>
-        <Label htmlFor="poly-outcome">Outcome</Label>
-        <select
-          id="poly-outcome"
-          value={config.outcomeIndex}
-          onChange={e => set('outcomeIndex', e.target.value)}
-        >
-          {outcomeOptions.map((o, i) => (
-            <option key={i} value={String(i)}>
-              {o.label}{o.price > 0 ? ` (${o.price}¢)` : ''}
-            </option>
-          ))}
-        </select>
-      </div>
+      <OutcomeField
+        id="poly-outcome"
+        value={config.outcomeIndex}
+        options={outcomeOptions}
+        onChange={v => set('outcomeIndex', v)}
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
+        <div className="nodrag nopan">
           <Label htmlFor="poly-threshold">Price Threshold</Label>
           <input
             id="poly-threshold"
             type="number"
             min="0" max="1" step="0.01"
+            className="nodrag nopan"
             value={config.priceThreshold}
             onChange={e => set('priceThreshold', e.target.value)}
+            onPointerDown={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
             placeholder="0.65"
           />
         </div>
-        <div>
-          <Label htmlFor="poly-direction">Direction</Label>
-          <select
-            id="poly-direction"
-            value={config.direction}
-            onChange={e => set('direction', e.target.value as PolymarketConfig['direction'])}
-          >
-            <option value="above">Above threshold</option>
-            <option value="below">Below threshold</option>
-            <option value="any">Any change</option>
-          </select>
-        </div>
+        <DirectionField
+          id="poly-direction"
+          value={config.direction}
+          onChange={v => set('direction', v)}
+        />
       </div>
 
       <Card className="bg-blue-500/5 border-blue-500/15 p-3">
