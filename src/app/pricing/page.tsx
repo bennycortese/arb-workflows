@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useUser, SignInButton, useAuth, useSession } from '@clerk/nextjs';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useUser, SignInButton, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../../@/components/ui/button';
 
@@ -35,9 +35,10 @@ function CanceledBanner() {
 function CheckoutSuccessBanner() {
   const searchParams = useSearchParams();
   const { getToken } = useAuth();
-  const { session } = useSession();
   const [timedOut, setTimedOut] = useState(false);
   const [activateError, setActivateError] = useState<string | null>(null);
+  const activationStartedRef = useRef(false);
+  const activationDoneRef = useRef(false);
 
   const isSuccess = searchParams.get('success') === 'true';
   const sessionId = searchParams.get('session_id');
@@ -46,22 +47,33 @@ function CheckoutSuccessBanner() {
     window.location.href = '/dashboard';
   }
 
+  function checkoutStorageKey(id: string) {
+    return `marketping_checkout_activated:${id}`;
+  }
+
   useEffect(() => {
     if (!isSuccess) return;
+    if (activationDoneRef.current) return;
+    if (activationStartedRef.current) return;
+    activationStartedRef.current = true;
 
     let cancelled = false;
 
     async function refreshAuth() {
-      try {
-        await session?.reload();
-      } catch {
-        // fall through to getToken
-      }
       await getToken({ skipCache: true });
     }
 
     async function run() {
       if (sessionId) {
+        if (typeof window !== 'undefined' && sessionStorage.getItem(checkoutStorageKey(sessionId)) === '1') {
+          if (!cancelled) {
+            activationDoneRef.current = true;
+            await refreshAuth();
+            goToDashboard();
+          }
+          return;
+        }
+
         try {
           const res = await fetch('/api/stripe/confirm-session', {
             method: 'POST',
@@ -71,6 +83,8 @@ function CheckoutSuccessBanner() {
           const data = await res.json();
           if (cancelled) return;
           if (res.ok) {
+            sessionStorage.setItem(checkoutStorageKey(sessionId), '1');
+            activationDoneRef.current = true;
             await refreshAuth();
             goToDashboard();
             return;
@@ -79,6 +93,7 @@ function CheckoutSuccessBanner() {
         } catch {
           if (!cancelled) setActivateError('Activation failed');
         }
+        return;
       }
 
       // Fallback: wait for webhook to activate, then hard-redirect
@@ -90,6 +105,7 @@ function CheckoutSuccessBanner() {
         } catch {
           // ignore
         }
+        activationDoneRef.current = true;
         goToDashboard();
         return;
       }
@@ -100,8 +116,11 @@ function CheckoutSuccessBanner() {
 
     return () => {
       cancelled = true;
+      if (!activationDoneRef.current) {
+        activationStartedRef.current = false;
+      }
     };
-  }, [isSuccess, sessionId, session, getToken]);
+  }, [isSuccess, sessionId, getToken]);
 
   if (!isSuccess) return null;
 
