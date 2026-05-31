@@ -34,10 +34,10 @@
 
 ### Copy & UX
 
-- [ ] **Fix landing page copy** — `messages/en.json` still says “Start automating free”, “Free to use. No credit card required.”, references Gmail, and says “4 nodes”. Pricing page says paid-only. Align with reality (5 nodes, AgentMail, $19/mo).
-- [ ] **Post-checkout redirect race** — success URL is `/dashboard?success=true` but middleware blocks until webhook sets `subscribed`. Redirect to `/pricing?success=true` and poll session refresh, or show an “activating…” state.
-- [ ] **Billing portal link** — `/api/stripe/portal` exists but dashboard has no “Manage subscription” button.
-- [ ] **Run history UI** — `workflow_runs` logged by cron/worker path; dashboard only shows `lastRun`/`lastStatus`, no alert feed.
+- [x] **Fix landing page copy** — aligned with paid-only pricing, AgentMail, 5 nodes
+- [x] **Post-checkout redirect race** — success redirects to `/pricing?success=true` with session polling
+- [x] **Billing portal link** — “Manage subscription” on dashboard
+- [x] **Run history UI** — recent alerts panel + `/api/workflows/runs`
 
 ### Worker / app parity
 
