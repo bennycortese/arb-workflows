@@ -15,11 +15,11 @@
   "landing": {
     "badge": "Kalshi + Polymarket automation",
     "heroTitle": "Your edge in prediction markets, automated.",
-    "heroSubtitle": "Connect Kalshi and Polymarket to Discord alerts and email notifications. Build workflows in minutes — no code required.",
-    "ctaPrimary": "Start automating free",
+    "heroSubtitle": "Connect Kalshi and Polymarket to Discord, email, and SMS alerts. Build workflows in minutes — no code required.",
+    "ctaPrimary": "View pricing",
     "ctaSecondary": "See how it works",
     "openDashboard": "Open Dashboard →",
-    "nodesSectionBadge": "4 nodes available",
+    "nodesSectionBadge": "5 nodes available",
     "nodesSectionTitle": "Everything you need to automate",
     "nodesSectionSubtitle": "Connect market data sources to notification actions. More nodes coming soon.",
     "howItWorksTitle": "Set up in under 3 minutes",
@@ -27,12 +27,12 @@
     "step1Title": "Pick your source",
     "step1Body": "Choose Kalshi or Polymarket as your data source. Paste a market ticker or slug, set a price threshold.",
     "step2Title": "Add actions",
-    "step2Body": "Chain Discord webhooks and Gmail notifications. Use template variables to include live market data.",
+    "step2Body": "Chain Discord webhooks, email (AgentMail), and SMS alerts. Use template variables to include live market data.",
     "step3Title": "Enable and forget",
     "step3Body": "Toggle your workflow live. MarketPing polls the markets and fires alerts the moment your threshold is crossed.",
     "ctaSectionTitle": "Start automating your edge",
-    "ctaSectionSubtitle": "Free to use. No credit card required.",
-    "ctaFree": "Get started for free",
+    "ctaSectionSubtitle": "MarketPing Pro — $19/mo. No free tier, no trial.",
+    "ctaFree": "Subscribe now",
     "footerDisclaimer": "Not financial advice. Always DYOR."
   },
   "dashboard": {
@@ -78,7 +78,7 @@
     "workflowNotFound": "Workflow not found.",
     "backButton": "Back to Dashboard",
     "noSourceError": "No source node (Kalshi/Polymarket) configured.",
-    "noActionError": "No action node (Discord/Gmail) configured."
+    "noActionError": "No action node (Discord/Email/SMS) configured."
   },
   "nodes": {
     "removeNode": "Remove node",

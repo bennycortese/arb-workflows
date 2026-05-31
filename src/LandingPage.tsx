@@ -186,6 +186,24 @@ const NODE_TYPES = [
     description: 'Email alerts with rich templates. Send to yourself or a team distribution list when thresholds are crossed.',
     features: ['Subject + body templates', 'Powered by AgentMail', 'Instant delivery'],
   },
+  {
+    id: 'sms',
+    label: 'SMS',
+    badgeClass: 'badge-sms',
+    role: 'Action',
+    color: '#4ade80',
+    bg: 'bg-green-500/5',
+    border: 'border-green-500/15',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="5" y="2" width="14" height="20" rx="2" stroke="#4ade80" strokeWidth="1.5"/>
+        <path d="M9 18h6" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M8 7h8M8 11h5" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    description: 'Text alerts to your phone the moment a threshold is crossed. Powered by Twilio.',
+    features: ['E.164 phone numbers', 'Custom message templates', 'Instant delivery'],
+  },
 ];
 
 function NodesSection() {
