@@ -11,6 +11,7 @@
 - [x] Gmail action node (nodemailer + App Password)
 - [x] Server: proxy Kalshi API, proxy Polymarket Gamma API
 - [x] Server: run workflow endpoint (fetch prices → check threshold → fire actions)
+- Fix
 
 ---
 
