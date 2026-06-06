@@ -31,7 +31,7 @@ async function tryEventTicker(eventTicker: string, apiKey: string | null): Promi
   const url = new URL(`${BASE}/markets`);
   url.searchParams.set('event_ticker', eventTicker);
   // No status filter — user may paste a ticker for a settled/closed market
-  url.searchParams.set('limit', '25');
+  url.searchParams.set('limit', '1000');
   const res = await kalshiFetch(url.toString(), apiKey);
   if (!res.ok) return null;
   const data = await res.json();
@@ -53,8 +53,7 @@ async function tryEventTicker(eventTicker: string, apiKey: string | null): Promi
       const aRank = statusRank[String(a.status).toLowerCase()] ?? 2;
       const bRank = statusRank[String(b.status).toLowerCase()] ?? 2;
       return aRank - bRank;
-    })
-    .slice(0, 9);
+    });
 }
 
 export async function GET(request: NextRequest) {

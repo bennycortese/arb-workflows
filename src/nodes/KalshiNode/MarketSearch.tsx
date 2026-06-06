@@ -270,6 +270,19 @@ interface Props {
 }
 
 export function MarketSearch({ results, onSelect }: Props) {
+  const [filter, setFilter] = useState('');
+  const normalizedFilter = filter.trim().toLowerCase();
+  const filteredResults = normalizedFilter
+    ? results.filter(m => [
+        m.ticker,
+        m.title,
+        m.yes_sub_title,
+        m.no_sub_title,
+        m.event_ticker,
+        m.category,
+      ].some(value => value?.toLowerCase().includes(normalizedFilter)))
+    : results;
+
   return (
     <div style={{
       position: 'absolute',
@@ -285,21 +298,46 @@ export function MarketSearch({ results, onSelect }: Props) {
       backdropFilter: 'blur(24px)',
       overflow: 'hidden',
     }}>
-      <div className="flex items-center justify-between px-4 py-3 border-b"
+      <div className="flex items-center gap-3 px-4 py-3 border-b"
         style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
         <span className="text-[11px] font-semibold uppercase tracking-widest"
           style={{ color: 'rgba(255,255,255,0.45)' }}>
           Open Markets
         </span>
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          {results.length} results
+        <input
+          type="search"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          onPointerDown={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          placeholder="Filter markets..."
+          aria-label="Filter open markets"
+          className="nodrag nopan min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-white/25 focus:ring-1 focus:ring-emerald-400/40"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        />
+        <span className="whitespace-nowrap text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          {filteredResults.length === results.length
+            ? `${results.length} results`
+            : `${filteredResults.length} of ${results.length}`}
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 p-3">
-        {results.map((m, i) => (
+      <div
+        className="grid grid-cols-3 gap-2 overflow-y-auto p-3"
+        style={{ maxHeight: 'min(520px, 65vh)', overscrollBehavior: 'contain' }}
+        onWheel={e => e.stopPropagation()}
+      >
+        {filteredResults.map((m, i) => (
           <MarketCard key={`${m.ticker}-${i}`} market={m} onSelect={onSelect} />
         ))}
+        {filteredResults.length === 0 && (
+          <div className="col-span-3 py-10 text-center text-xs text-white/35">
+            No markets match &ldquo;{filter.trim()}&rdquo;
+          </div>
+        )}
       </div>
     </div>
   );
