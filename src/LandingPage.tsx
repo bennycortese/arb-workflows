@@ -204,6 +204,46 @@ const NODE_TYPES = [
     description: 'Text alerts to your phone the moment a threshold is crossed. Powered by Twilio.',
     features: ['E.164 phone numbers', 'Custom message templates', 'Instant delivery'],
   },
+  {
+    id: 'webhook',
+    label: 'Webhook',
+    badgeClass: 'badge-webhook',
+    role: 'Action',
+    color: '#22d3ee',
+    bg: 'bg-cyan-500/5',
+    border: 'border-cyan-500/15',
+    icon: <span className="font-mono text-sm font-bold text-cyan-400">{'{ }'}</span>,
+    description: 'POST structured market events to Zapier, Make, n8n, databases, or your own services.',
+    features: ['Structured JSON payload', 'Optional secret header', 'HTTPS endpoints'],
+  },
+  {
+    id: 'telegram',
+    label: 'Telegram',
+    badgeClass: 'badge-telegram',
+    role: 'Action',
+    color: '#38bdf8',
+    bg: 'bg-sky-500/5',
+    border: 'border-sky-500/15',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M21 4L3 11l7 2.5M21 4l-4 16-7-6.5M21 4L10 13.5M10 13.5V19l3-3" stroke="#38bdf8" strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    ),
+    description: 'Send instant alerts to a private chat, group, or channel through a Telegram bot.',
+    features: ['Private chats and groups', 'Custom message templates', 'Bot API delivery'],
+  },
+  {
+    id: 'slack',
+    label: 'Slack',
+    badgeClass: 'badge-slack',
+    role: 'Action',
+    color: '#c084fc',
+    bg: 'bg-purple-500/5',
+    border: 'border-purple-500/15',
+    icon: <span className="text-xl font-bold text-purple-400">#</span>,
+    description: 'Post market alerts to a Slack channel using an incoming webhook.',
+    features: ['Channel delivery', 'Custom message templates', 'Incoming webhooks'],
+  },
 ];
 
 function NodesSection() {

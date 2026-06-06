@@ -2,7 +2,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'kalshi' | 'polymarket' | 'discord' | 'email' | 'teal' | 'muted'
+  variant?: 'kalshi' | 'polymarket' | 'discord' | 'email' | 'webhook' | 'telegram' | 'slack' | 'teal' | 'muted'
 }
 
 function Badge({ className, variant = 'muted', ...props }: BadgeProps) {
@@ -15,6 +15,9 @@ function Badge({ className, variant = 'muted', ...props }: BadgeProps) {
           'badge-polymarket': variant === 'polymarket',
           'badge-discord': variant === 'discord',
           'badge-email': variant === 'email',
+          'badge-webhook': variant === 'webhook',
+          'badge-telegram': variant === 'telegram',
+          'badge-slack': variant === 'slack',
           'badge-teal': variant === 'teal',
           'bg-white/[0.06] text-white/50 border border-white/[0.08]': variant === 'muted',
         },

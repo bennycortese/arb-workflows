@@ -55,6 +55,44 @@ function makeSmsNode(overrides: Record<string, any> = {}) {
   };
 }
 
+function makeWebhookNode(overrides: Record<string, any> = {}) {
+  return {
+    id: 'webhook-1',
+    type: 'webhook',
+    config: {
+      webhookUrl: 'https://example.com/hooks/marketping',
+      secret: 'shared-secret',
+      messageTemplate: '{{market}} hit {{price}}',
+      ...overrides,
+    },
+  };
+}
+
+function makeTelegramNode(overrides: Record<string, any> = {}) {
+  return {
+    id: 'telegram-1',
+    type: 'telegram',
+    config: {
+      botToken: '123456:ABC_def',
+      chatId: '-1001234567890',
+      messageTemplate: '{{market}} hit {{price}}',
+      ...overrides,
+    },
+  };
+}
+
+function makeSlackNode(overrides: Record<string, any> = {}) {
+  return {
+    id: 'slack-1',
+    type: 'slack',
+    config: {
+      webhookUrl: 'https://hooks.slack.com/services/T1/B1/secret',
+      messageTemplate: '{{market}} hit {{price}}',
+      ...overrides,
+    },
+  };
+}
+
 function makeWorkflow(actionNodes: any[], edges?: { source: string; target: string }[]) {
   return {
     id: 'wf-1',
@@ -313,6 +351,122 @@ describe('notify — SMS', () => {
       status: 'error',
       message: 'SMS consent has not been confirmed',
     }));
+  });
+});
+
+describe('notify — generic webhook', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('posts structured JSON and the optional shared secret', async () => {
+    const results = await notify(makeWorkflow([makeWebhookNode()]), makeKalshiNode(), 0.50);
+
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url.toString()).toBe('https://example.com/hooks/marketping');
+    expect(options.headers['X-MarketPing-Secret']).toBe('shared-secret');
+    expect(JSON.parse(options.body)).toEqual(expect.objectContaining({
+      event: 'market.threshold_crossed',
+      message: 'TICKER-A hit 50¢',
+      market: 'TICKER-A',
+      platform: 'Kalshi',
+      price: '50¢',
+      threshold: '45¢',
+    }));
+    expect(results[1]).toEqual(expect.objectContaining({ type: 'webhook', status: 'ok' }));
+  });
+
+  it('rejects private-network destinations', async () => {
+    const results = await notify(
+      makeWorkflow([makeWebhookNode({ webhookUrl: 'https://127.0.0.1/hook' })]),
+      makeKalshiNode(),
+      0.50
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(results[1]).toEqual(expect.objectContaining({
+      status: 'error',
+      message: 'Private network webhook URLs are not allowed',
+    }));
+  });
+});
+
+describe('notify — Telegram', () => {
+  it('calls sendMessage with the configured chat', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await notify(makeWorkflow([makeTelegramNode()]), makeKalshiNode(), 0.50);
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.telegram.org/bot123456:ABC_def/sendMessage'
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      chat_id: '-1001234567890',
+      text: 'TICKER-A hit 50¢',
+      disable_web_page_preview: true,
+    });
+    expect(results[1]).toEqual(expect.objectContaining({ type: 'telegram', status: 'ok' }));
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects malformed bot tokens before sending', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await notify(
+      makeWorkflow([makeTelegramNode({ botToken: 'not-a-token' })]),
+      makeKalshiNode(),
+      0.50
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(results[1]).toEqual(expect.objectContaining({
+      status: 'error',
+      message: 'Invalid Telegram bot token',
+    }));
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('notify — Slack', () => {
+  it('posts the rendered text to a Slack incoming webhook', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await notify(makeWorkflow([makeSlackNode()]), makeKalshiNode(), 0.50);
+
+    expect(fetchMock.mock.calls[0][0].toString()).toBe(
+      'https://hooks.slack.com/services/T1/B1/secret'
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ text: 'TICKER-A hit 50¢' });
+    expect(results[1]).toEqual(expect.objectContaining({ type: 'slack', status: 'ok' }));
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects non-Slack webhook hosts', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await notify(
+      makeWorkflow([makeSlackNode({ webhookUrl: 'https://example.com/slack' })]),
+      makeKalshiNode(),
+      0.50
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(results[1]).toEqual(expect.objectContaining({
+      status: 'error',
+      message: 'Invalid Slack webhook URL',
+    }));
+    vi.unstubAllGlobals();
   });
 });
 

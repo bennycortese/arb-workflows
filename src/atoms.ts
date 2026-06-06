@@ -1,7 +1,15 @@
 import { atom } from 'jotai';
 import { v4 as uuidv4 } from 'uuid';
 
-export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email' | 'sms';
+export type NodeType =
+  | 'kalshi'
+  | 'polymarket'
+  | 'discord'
+  | 'email'
+  | 'sms'
+  | 'webhook'
+  | 'telegram'
+  | 'slack';
 
 export interface KalshiConfig {
   apiKey: string;
@@ -34,7 +42,32 @@ export interface SmsConfig {
   smsConsent: boolean;
 }
 
-export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | EmailConfig | SmsConfig;
+export interface WebhookConfig {
+  webhookUrl: string;
+  secret: string;
+  messageTemplate: string;
+}
+
+export interface TelegramConfig {
+  botToken: string;
+  chatId: string;
+  messageTemplate: string;
+}
+
+export interface SlackConfig {
+  webhookUrl: string;
+  messageTemplate: string;
+}
+
+export type NodeConfig =
+  | KalshiConfig
+  | PolymarketConfig
+  | DiscordConfig
+  | EmailConfig
+  | SmsConfig
+  | WebhookConfig
+  | TelegramConfig
+  | SlackConfig;
 
 export interface WorkflowNode {
   id: string;
@@ -93,6 +126,23 @@ export const defaultSmsConfig: SmsConfig = {
   smsConsent: false,
 };
 
+export const defaultWebhookConfig: WebhookConfig = {
+  webhookUrl: '',
+  secret: '',
+  messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} - now {{price}} on {{platform}}. {{url}}',
+};
+
+export const defaultTelegramConfig: TelegramConfig = {
+  botToken: '',
+  chatId: '',
+  messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} - now {{price}} on {{platform}}. {{url}}',
+};
+
+export const defaultSlackConfig: SlackConfig = {
+  webhookUrl: '',
+  messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} - now {{price}} on {{platform}}. {{url}}',
+};
+
 function makeDefaultConfig(type: NodeType): NodeConfig {
   switch (type) {
     case 'kalshi':     return { ...defaultKalshiConfig };
@@ -100,6 +150,9 @@ function makeDefaultConfig(type: NodeType): NodeConfig {
     case 'discord':    return { ...defaultDiscordConfig };
     case 'email':      return { ...defaultEmailConfig };
     case 'sms':        return { ...defaultSmsConfig };
+    case 'webhook':    return { ...defaultWebhookConfig };
+    case 'telegram':   return { ...defaultTelegramConfig };
+    case 'slack':      return { ...defaultSlackConfig };
   }
 }
 

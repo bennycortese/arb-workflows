@@ -4,7 +4,15 @@ import { WorkflowGraph } from './workflowGraph';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email' | 'sms';
+export type NodeType =
+  | 'kalshi'
+  | 'polymarket'
+  | 'discord'
+  | 'email'
+  | 'sms'
+  | 'webhook'
+  | 'telegram'
+  | 'slack';
 
 export interface WorkflowNode {
   id: string;
@@ -70,6 +78,77 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
     const errText = await resp.text();
     throw new Error(`AgentMail API ${resp.status}: ${errText}`);
   }
+}
+
+function validatePublicHttpsUrl(rawUrl: string): URL {
+  const url = new URL(rawUrl);
+  if (url.protocol !== 'https:') throw new Error('Webhook URL must use HTTPS');
+
+  const hostname = url.hostname.toLowerCase();
+  const blocked =
+    hostname === 'localhost' ||
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local') ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^169\.254\./.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+    /^\[?f[cd][0-9a-f]{2}:/i.test(hostname) ||
+    /^\[?fe[89ab][0-9a-f]:/i.test(hostname);
+  if (blocked) throw new Error('Private network webhook URLs are not allowed');
+  return url;
+}
+
+async function sendWebhook(
+  webhookUrl: string,
+  secret: string,
+  message: string,
+  vars: Record<string, string>
+): Promise<void> {
+  const url = validatePublicHttpsUrl(webhookUrl);
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(secret ? { 'X-MarketPing-Secret': secret } : {}),
+    },
+    body: JSON.stringify({
+      event: 'market.threshold_crossed',
+      message,
+      market: vars.market,
+      platform: vars.platform,
+      price: vars.price,
+      threshold: vars.threshold,
+      direction: vars.direction,
+      url: vars.url,
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!resp.ok) throw new Error(`Webhook failed: ${resp.status} ${resp.statusText}`);
+}
+
+async function sendTelegram(botToken: string, chatId: string, text: string): Promise<void> {
+  if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken)) throw new Error('Invalid Telegram bot token');
+  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+  });
+  if (!resp.ok) throw new Error(`Telegram API failed: ${resp.status} ${await resp.text()}`);
+}
+
+async function sendSlack(webhookUrl: string, text: string): Promise<void> {
+  const url = validatePublicHttpsUrl(webhookUrl);
+  if (url.hostname !== 'hooks.slack.com') throw new Error('Invalid Slack webhook URL');
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!resp.ok) throw new Error(`Slack webhook failed: ${resp.status} ${resp.statusText}`);
 }
 
 // ── Price fetchers ─────────────────────────────────────────────────────────────
@@ -260,6 +339,33 @@ export async function evaluateAndNotify(
           if (smsConsent !== true) throw new Error('SMS consent has not been confirmed');
           await sendSms(toPhone, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
           results.push({ nodeId: node.id, type: 'sms', status: 'ok', message: `SMS sent to ${toPhone} (${vars.platform}: ${vars.market})` });
+        }
+
+        if (node.type === 'webhook') {
+          const { webhookUrl, secret, messageTemplate } = node.config;
+          if (!webhookUrl) throw new Error('Webhook URL not configured');
+          await sendWebhook(
+            webhookUrl,
+            secret ?? '',
+            fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars),
+            vars
+          );
+          results.push({ nodeId: node.id, type: 'webhook', status: 'ok', message: `Webhook delivered (${vars.platform}: ${vars.market})` });
+        }
+
+        if (node.type === 'telegram') {
+          const { botToken, chatId, messageTemplate } = node.config;
+          if (!botToken) throw new Error('Telegram bot token not configured');
+          if (!chatId) throw new Error('Telegram chat ID not configured');
+          await sendTelegram(botToken, chatId, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+          results.push({ nodeId: node.id, type: 'telegram', status: 'ok', message: `Telegram message sent (${vars.platform}: ${vars.market})` });
+        }
+
+        if (node.type === 'slack') {
+          const { webhookUrl, messageTemplate } = node.config;
+          if (!webhookUrl) throw new Error('Slack webhook URL not configured');
+          await sendSlack(webhookUrl, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+          results.push({ nodeId: node.id, type: 'slack', status: 'ok', message: `Slack message sent (${vars.platform}: ${vars.market})` });
         }
       } catch (err: any) {
         results.push({ nodeId: node.id, type: node.type as NodeType, status: 'error', message: err.message });

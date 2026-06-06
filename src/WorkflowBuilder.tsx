@@ -25,7 +25,8 @@ import '@xyflow/react/dist/style.css';
 import {
   workflowsAtom, activeWorkflowIdAtom,
   WorkflowNode, NodeType, createNode,
-  KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, SmsConfig, NodeConfig,
+  KalshiConfig, PolymarketConfig, DiscordConfig, EmailConfig, SmsConfig,
+  WebhookConfig, TelegramConfig, SlackConfig, NodeConfig,
   saveWorkflowAtom,
 } from './atoms';
 import { useSetAtom } from 'jotai';
@@ -34,7 +35,10 @@ import { PolymarketNodeConfig, PolymarketNodeHeader } from './nodes/PolymarketNo
 import { DiscordNodeConfig, DiscordNodeHeader } from './nodes/DiscordNode';
 import { GmailNodeConfig, GmailNodeHeader } from './nodes/GmailNode';
 import { SmsNodeConfig, SmsNodeHeader } from './nodes/SmsNode';
-import { WorkflowGraph } from './lib/workflowGraph';
+import { WebhookNodeConfig, WebhookNodeHeader } from './nodes/WebhookNode';
+import { TelegramNodeConfig, TelegramNodeHeader } from './nodes/TelegramNode';
+import { SlackNodeConfig, SlackNodeHeader } from './nodes/SlackNode';
+import { WorkflowGraph, isActionType, isSourceType } from './lib/workflowGraph';
 
 // ── Node type picker ──────────────────────────────────────────────────────────
 const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source' | 'action'; color: string }[] = [
@@ -43,13 +47,16 @@ const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source'
   { type: 'discord',   label: 'Discord',    desc: 'Post to channel',      role: 'action', color: '#818cf8' },
   { type: 'email',     label: 'Email',      desc: 'Send email',           role: 'action', color: '#f87171' },
   { type: 'sms',       label: 'SMS',        desc: 'Send text message',    role: 'action', color: '#4ade80' },
+  { type: 'webhook',   label: 'Webhook',    desc: 'POST structured JSON', role: 'action', color: '#22d3ee' },
+  { type: 'telegram',  label: 'Telegram',   desc: 'Send bot message',      role: 'action', color: '#38bdf8' },
+  { type: 'slack',     label: 'Slack',      desc: 'Post to channel',       role: 'action', color: '#c084fc' },
 ];
 
 function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClose: () => void }) {
   const t = useTranslations('builder');
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border border-white/[0.08] rounded-2xl p-6 w-80 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="max-h-[85vh] w-80 overflow-y-auto rounded-2xl border border-white/[0.08] bg-card p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="text-sm font-semibold text-white mb-4">{t('addNodeTitle')}</h3>
         <div className="space-y-2">
           <p className="text-xs text-white/30 uppercase tracking-wider mb-2">{t('sourcesLabel')}</p>
@@ -374,12 +381,54 @@ function SmsCanvasNode({ id, data }: NodeProps) {
   );
 }
 
+function WebhookCanvasNode({ id, data }: NodeProps) {
+  const workflowId = (data as { workflowId: string }).workflowId;
+  const { node, updateConfig } = useNodeConfig(id, workflowId);
+  if (!node) return null;
+  return (
+    <CanvasNodeShell
+      id={id} isSource={false} accentColor="#22d3ee"
+      header={<WebhookNodeHeader />}
+      configPanel={<WebhookNodeConfig config={node.config as WebhookConfig} onChange={updateConfig} />}
+    />
+  );
+}
+
+function TelegramCanvasNode({ id, data }: NodeProps) {
+  const workflowId = (data as { workflowId: string }).workflowId;
+  const { node, updateConfig } = useNodeConfig(id, workflowId);
+  if (!node) return null;
+  return (
+    <CanvasNodeShell
+      id={id} isSource={false} accentColor="#38bdf8"
+      header={<TelegramNodeHeader />}
+      configPanel={<TelegramNodeConfig config={node.config as TelegramConfig} onChange={updateConfig} />}
+    />
+  );
+}
+
+function SlackCanvasNode({ id, data }: NodeProps) {
+  const workflowId = (data as { workflowId: string }).workflowId;
+  const { node, updateConfig } = useNodeConfig(id, workflowId);
+  if (!node) return null;
+  return (
+    <CanvasNodeShell
+      id={id} isSource={false} accentColor="#c084fc"
+      header={<SlackNodeHeader />}
+      configPanel={<SlackNodeConfig config={node.config as SlackConfig} onChange={updateConfig} />}
+    />
+  );
+}
+
 const nodeTypes = {
   kalshi:     KalshiCanvasNode,
   polymarket: PolymarketCanvasNode,
   discord:    DiscordCanvasNode,
   email:      GmailCanvasNode,
   sms:        SmsCanvasNode,
+  webhook:    WebhookCanvasNode,
+  telegram:   TelegramCanvasNode,
+  slack:      SlackCanvasNode,
 };
 
 // ── Edge factory ──────────────────────────────────────────────────────────────
@@ -397,11 +446,9 @@ function makeEdge(source: string, target: string, onWaypointChange?: WaypointCb,
 
 // ── Default node positions ────────────────────────────────────────────────────
 function defaultPosition(node: WorkflowNode, allNodes: WorkflowNode[]) {
-  const isSource = node.type === 'kalshi' || node.type === 'polymarket';
+  const isSource = isSourceType(node.type);
   const peers = allNodes.filter(n =>
-    isSource
-      ? (n.type === 'kalshi' || n.type === 'polymarket')
-      : (n.type === 'discord' || n.type === 'email')
+    isSource ? isSourceType(n.type) : isActionType(n.type)
   );
   const idx = peers.findIndex(n => n.id === node.id);
   return { x: isSource ? 80 : 560, y: 80 + Math.max(0, idx) * 420 };
@@ -534,10 +581,9 @@ export default function WorkflowBuilder() {
   function addNode(type: NodeType) {
     if (!workflow) return;
     const node = createNode(type);
-    const isSource = type === 'kalshi' || type === 'polymarket';
+    const isSource = isSourceType(type);
     const peers = workflow.nodes.filter(n =>
-      isSource ? (n.type === 'kalshi' || n.type === 'polymarket')
-               : (n.type === 'discord' || n.type === 'email')
+      isSource ? isSourceType(n.type) : isActionType(n.type)
     );
     const position = { x: isSource ? 80 : 560, y: 80 + peers.length * 420 };
     setWorkflows(prev => prev.map(w =>
@@ -554,8 +600,8 @@ export default function WorkflowBuilder() {
     if (!workflow) return;
     const ts = () => new Date().toLocaleTimeString();
     const newLog: RunLogEntry[] = [];
-    const sources = workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket');
-    const actions = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email');
+    const sources = workflow.nodes.filter(n => isSourceType(n.type));
+    const actions = workflow.nodes.filter(n => isActionType(n.type));
 
     if (!sources.length) { setLog([{ ts: ts(), message: t('noSourceError'), type: 'error' }]); return; }
     if (!actions.length) { setLog([{ ts: ts(), message: t('noActionError'), type: 'error' }]); return; }
@@ -617,8 +663,8 @@ export default function WorkflowBuilder() {
     );
   }
 
-  const sourceCount = workflow.nodes.filter(n => n.type === 'kalshi' || n.type === 'polymarket').length;
-  const actionCount = workflow.nodes.filter(n => n.type === 'discord' || n.type === 'email').length;
+  const sourceCount = workflow.nodes.filter(n => isSourceType(n.type)).length;
+  const actionCount = workflow.nodes.filter(n => isActionType(n.type)).length;
   const canRun = sourceCount > 0 && actionCount > 0;
 
   return (

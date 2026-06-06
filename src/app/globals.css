@@ -145,6 +145,15 @@
   .badge-sms {
     @apply bg-green-500/10 text-green-400 border border-green-500/20;
   }
+  .badge-webhook {
+    @apply bg-cyan-500/10 text-cyan-400 border border-cyan-500/20;
+  }
+  .badge-telegram {
+    @apply bg-sky-500/10 text-sky-400 border border-sky-500/20;
+  }
+  .badge-slack {
+    @apply bg-purple-500/10 text-purple-400 border border-purple-500/20;
+  }
   .badge-teal {
     @apply bg-cyan-500/10 text-cyan-400 border border-cyan-500/20;
   }
@@ -174,6 +183,7 @@
   /* ── Input overrides ── */
   input[type="text"],
   input[type="email"],
+  input[type="password"],
   input[type="url"],
   input[type="number"],
   textarea,

@@ -37,6 +37,30 @@ async function notify(workflow, sourceNode, price, supabase) {
                 await sendSms(toPhone, (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars));
                 results.push(ok(action, `SMS sent to ${toPhone} (${vars.platform}: ${vars.market})`));
             }
+            if (type === 'webhook') {
+                const webhookUrl = stringConfig(action, 'webhookUrl');
+                if (!webhookUrl)
+                    throw new Error('Webhook URL not configured');
+                await sendWebhook(webhookUrl, stringConfig(action, 'secret'), (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars), vars);
+                results.push(ok(action, `Webhook delivered (${vars.platform}: ${vars.market})`));
+            }
+            if (type === 'telegram') {
+                const botToken = stringConfig(action, 'botToken');
+                const chatId = stringConfig(action, 'chatId');
+                if (!botToken)
+                    throw new Error('Telegram bot token not configured');
+                if (!chatId)
+                    throw new Error('Telegram chat ID not configured');
+                await sendTelegram(botToken, chatId, (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars));
+                results.push(ok(action, `Telegram message sent (${vars.platform}: ${vars.market})`));
+            }
+            if (type === 'slack') {
+                const webhookUrl = stringConfig(action, 'webhookUrl');
+                if (!webhookUrl)
+                    throw new Error('Slack webhook URL not configured');
+                await sendSlack(webhookUrl, (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars));
+                results.push(ok(action, `Slack message sent (${vars.platform}: ${vars.market})`));
+            }
         }
         catch (error) {
             results.push({
@@ -52,7 +76,12 @@ async function notify(workflow, sourceNode, price, supabase) {
     return results;
 }
 function connectedActions(workflow, sourceNodeId) {
-    const actions = workflow.nodes.filter(node => node.type === 'discord' || node.type === 'email' || node.type === 'sms');
+    const actions = workflow.nodes.filter(node => node.type === 'discord' ||
+        node.type === 'email' ||
+        node.type === 'sms' ||
+        node.type === 'webhook' ||
+        node.type === 'telegram' ||
+        node.type === 'slack');
     const edges = workflow.edges ?? [];
     if (edges.length === 0)
         return actions;
@@ -136,6 +165,73 @@ async function sendSms(to, body) {
         const detail = await response.text();
         throw new Error(`Twilio API failed: ${response.status} ${detail}`);
     }
+}
+function validatePublicHttpsUrl(rawUrl) {
+    const url = new URL(rawUrl);
+    if (url.protocol !== 'https:')
+        throw new Error('Webhook URL must use HTTPS');
+    const hostname = url.hostname.toLowerCase();
+    const blocked = hostname === 'localhost' ||
+        hostname === '::1' ||
+        hostname === '[::1]' ||
+        hostname === '0.0.0.0' ||
+        hostname.endsWith('.local') ||
+        /^127\./.test(hostname) ||
+        /^10\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^169\.254\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+        /^\[?f[cd][0-9a-f]{2}:/i.test(hostname) ||
+        /^\[?fe[89ab][0-9a-f]:/i.test(hostname);
+    if (blocked)
+        throw new Error('Private network webhook URLs are not allowed');
+    return url;
+}
+async function sendWebhook(webhookUrl, secret, message, vars) {
+    const url = validatePublicHttpsUrl(webhookUrl);
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(secret ? { 'X-MarketPing-Secret': secret } : {}),
+        },
+        body: JSON.stringify({
+            event: 'market.threshold_crossed',
+            message,
+            market: vars.market,
+            platform: vars.platform,
+            price: vars.price,
+            threshold: vars.threshold,
+            direction: vars.direction,
+            url: vars.url,
+        }),
+        signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok)
+        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
+}
+async function sendTelegram(botToken, chatId, text) {
+    if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken))
+        throw new Error('Invalid Telegram bot token');
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    });
+    if (!response.ok)
+        throw new Error(`Telegram API failed: ${response.status} ${await response.text()}`);
+}
+async function sendSlack(webhookUrl, text) {
+    const url = validatePublicHttpsUrl(webhookUrl);
+    if (url.hostname !== 'hooks.slack.com')
+        throw new Error('Invalid Slack webhook URL');
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+    });
+    if (!response.ok)
+        throw new Error(`Slack webhook failed: ${response.status} ${response.statusText}`);
 }
 async function logRun(supabase, workflowId, results) {
     const finishedAt = new Date().toISOString();

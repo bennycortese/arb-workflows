@@ -34,7 +34,7 @@
 
 ### Copy & UX
 
-- [x] **Fix landing page copy** — aligned with paid-only pricing, AgentMail, 5 nodes
+- [x] **Fix landing page copy** — aligned with paid-only pricing, AgentMail, and 8 nodes
 - [x] **Post-checkout redirect race** — success redirects to `/pricing?success=true` with session polling
 - [x] **Billing portal link** — “Manage subscription” on dashboard
 - [x] **Run history UI** — recent alerts panel + `/api/workflows/runs`
@@ -79,9 +79,9 @@
 - [ ] Reconcile worker vs cron paths (avoid duplicate/missed alerts)
 
 ### New nodes
-- [ ] **Telegram node** — send message via Bot API
-- [ ] **Slack node** — post to channel via webhook
-- [ ] **Webhook node** — fire arbitrary HTTP request with market data
+- [x] **Telegram node** — send message via Bot API
+- [x] **Slack node** — post to channel via webhook
+- [x] **Webhook node** — fire structured HTTP request with market data
 - [ ] **Filter node** — conditional logic (e.g. only trigger if volume > X)
 - [ ] **Arbitrage node** — compare same event across Kalshi + Polymarket, alert on spread
 - [ ] **Airtable node** — log market snapshots to a table

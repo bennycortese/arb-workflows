@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'MarketPing — Prediction Market Automation',
-  description: 'Connect Kalshi and Polymarket to Discord alerts and email notifications.',
+  description: 'Connect Kalshi and Polymarket to real-time alerts across Discord, email, SMS, webhooks, Telegram, and Slack.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
