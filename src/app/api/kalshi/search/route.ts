@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeMarketIdentifier } from '../../../../lib/marketInput';
 
 const BASE = 'https://api.elections.kalshi.com/trade-api/v2';
 
@@ -35,7 +36,25 @@ async function tryEventTicker(eventTicker: string, apiKey: string | null): Promi
   if (!res.ok) return null;
   const data = await res.json();
   const markets: any[] = data.markets || [];
-  return markets.length > 0 ? markets : null;
+  if (markets.length === 0) return null;
+
+  const statusRank: Record<string, number> = {
+    open: 0,
+    active: 0,
+    initialized: 1,
+    inactive: 2,
+    closed: 3,
+    settled: 4,
+    finalized: 4,
+  };
+
+  return markets
+    .sort((a, b) => {
+      const aRank = statusRank[String(a.status).toLowerCase()] ?? 2;
+      const bRank = statusRank[String(b.status).toLowerCase()] ?? 2;
+      return aRank - bRank;
+    })
+    .slice(0, 9);
 }
 
 export async function GET(request: NextRequest) {
@@ -43,7 +62,9 @@ export async function GET(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const q = (request.nextUrl.searchParams.get('q') || '').trim();
+    const q = normalizeMarketIdentifier(
+      request.nextUrl.searchParams.get('q') || '',
+    );
     const apiKey = request.headers.get('x-kalshi-api-key');
 
     if (!q) return NextResponse.json({ markets: [] });

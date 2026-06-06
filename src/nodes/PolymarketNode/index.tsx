@@ -6,6 +6,7 @@ import { PolymarketSearch, PolyMarketResult } from './MarketSearch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { normalizeMarketIdentifier } from '../../lib/marketInput';
 import { DirectionField, OutcomeField } from '../shared/fields';
 
 interface Props {
@@ -113,8 +114,12 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
               onPointerDown={e => e.stopPropagation()}
               onMouseDown={e => e.stopPropagation()}
               onPaste={e => {
-                const text = e.clipboardData.getData('text').trim();
-                if (text) { setSearchQuery(text); search(text); }
+                const text = normalizeMarketIdentifier(e.clipboardData.getData('text'));
+                if (text) {
+                  e.preventDefault();
+                  setSearchQuery(text);
+                  search(text);
+                }
               }}
               onFocus={() => results.length > 0 && setOpen(true)}
               placeholder="Search markets…"
