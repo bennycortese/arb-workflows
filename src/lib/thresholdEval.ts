@@ -9,7 +9,7 @@ export type NodeType = 'kalshi' | 'polymarket' | 'discord' | 'email' | 'sms';
 export interface WorkflowNode {
   id: string;
   type: NodeType;
-  config: Record<string, string>;
+  config: Record<string, string> & { smsConsent?: boolean };
 }
 
 export interface WorkflowLike {
@@ -249,8 +249,9 @@ export async function evaluateAndNotify(
         }
 
         if (node.type === 'sms') {
-          const { toPhone, messageTemplate } = node.config;
+          const { toPhone, messageTemplate, smsConsent } = node.config;
           if (!toPhone) throw new Error('Phone number not configured');
+          if (smsConsent !== true) throw new Error('SMS consent has not been confirmed');
           await sendSms(toPhone, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
           results.push({ nodeId: node.id, type: 'sms', status: 'ok', message: `SMS sent to ${toPhone} (${vars.platform}: ${vars.market})` });
         }

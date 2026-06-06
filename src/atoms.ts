@@ -31,6 +31,7 @@ export interface EmailConfig {
 export interface SmsConfig {
   toPhone: string;
   messageTemplate: string;
+  smsConsent: boolean;
 }
 
 export type NodeConfig = KalshiConfig | PolymarketConfig | DiscordConfig | EmailConfig | SmsConfig;
@@ -89,6 +90,7 @@ export const defaultEmailConfig: EmailConfig = {
 export const defaultSmsConfig: SmsConfig = {
   toPhone: '',
   messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} — now {{price}} on {{platform}}. {{url}}',
+  smsConsent: false,
 };
 
 function makeDefaultConfig(type: NodeType): NodeConfig {

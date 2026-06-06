@@ -5,6 +5,8 @@ import { getSupabaseAdmin } from './lib/supabase';
 const isPublicRoute = createRouteMatcher([
   '/',
   '/pricing',
+  '/privacy',
+  '/terms',
   '/api/stripe/webhook',
   '/api/poll-all',
 ]);

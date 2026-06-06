@@ -15,7 +15,7 @@ interface Props {
 const VARS = ['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}', '{{url}}'];
 
 export function SmsNodeConfig({ config, onChange }: Props) {
-  const set = (key: keyof SmsConfig, value: string) =>
+  const set = <K extends keyof SmsConfig>(key: K, value: SmsConfig[K]) =>
     onChange({ ...config, [key]: value });
 
   const phoneError = config.toPhone && !/^\+[1-9]\d{7,14}$/.test(config.toPhone)
@@ -67,12 +67,33 @@ export function SmsNodeConfig({ config, onChange }: Props) {
         </div>
       </div>
 
+      <label
+        htmlFor="sms-consent"
+        className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/[0.08] bg-white/[0.02] p-3"
+      >
+        <input
+          id="sms-consent"
+          type="checkbox"
+          checked={config.smsConsent === true}
+          onChange={e => set('smsConsent', e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-cyan-500"
+        />
+        <span className="text-xs leading-relaxed text-white/50">
+          I agree to receive recurring automated market-alert text messages from MarketPing at
+          the number above. Message frequency varies based on my alerts. Message and data rates
+          may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of purchase.{' '}
+          <a href="/terms" target="_blank" className="text-cyan-400 hover:underline">Terms</a>
+          {' '}and{' '}
+          <a href="/privacy" target="_blank" className="text-cyan-400 hover:underline">Privacy Policy</a>.
+        </span>
+      </label>
+
       <Card className="bg-green-500/5 border-green-500/15 p-3 space-y-1">
         <p className="text-xs text-green-400/80">
           SMS to <span className="font-semibold">{config.toPhone || 'your number'}</span>
         </p>
         <p className="text-xs text-white/25">
-          Sent via Twilio · standard message rates apply
+          Sent via Twilio · reply STOP to unsubscribe or HELP for help
         </p>
       </Card>
     </div>

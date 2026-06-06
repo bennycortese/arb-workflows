@@ -327,7 +327,7 @@ function Footer() {
   const tn = useTranslations('nav');
   return (
     <footer className="section-border py-10 px-6">
-      <div className="max-w-[1200px] mx-auto flex items-center justify-between">
+      <div className="max-w-[1200px] mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
@@ -335,6 +335,11 @@ function Footer() {
             </svg>
           </div>
           <span className="text-sm text-white/40">{tn('brand')}</span>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-white/30">
+          <a href="/privacy" className="hover:text-white/60">Privacy</a>
+          <a href="/terms" className="hover:text-white/60">Terms</a>
+          <a href="mailto:bennycortese@gmail.com" className="hover:text-white/60">Support</a>
         </div>
         <p className="text-xs text-white/25">{t('footerDisclaimer')}</p>
       </div>

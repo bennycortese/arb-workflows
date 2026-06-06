@@ -10,7 +10,7 @@ export interface GraphNode  { id: string; type: string; }
 /**
  * Lightweight graph wrapper over a workflow's nodes + edges.
  * Generic so it works with both atoms.WorkflowNode (rich config) and
- * thresholdEval.WorkflowNode (config: Record<string, string>).
+ * thresholdEval.WorkflowNode (string config values plus the SMS consent flag).
  */
 export class WorkflowGraph<N extends GraphNode> {
   readonly sourceNodes: N[];
