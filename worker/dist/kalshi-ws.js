@@ -93,9 +93,10 @@ class KalshiWSManager {
         const ticker = msg.msg?.market_ticker;
         if (!ticker)
             return;
-        // yes_bid is in cents (integer) — convert to fraction
-        const yesBid = msg.msg?.yes_bid ?? 0;
-        const price = yesBid / 100;
+        // last_price fires on every trade; yes_bid only fires on orderbook changes
+        // (bid-only was causing slow/missed updates on thin 15-min markets)
+        const rawPrice = msg.msg?.last_price ?? msg.msg?.yes_bid ?? 0;
+        const price = rawPrice / 100;
         const entries = this.subs.get(ticker.toUpperCase());
         if (!entries)
             return;
@@ -128,7 +129,7 @@ class KalshiWSManager {
         };
         if (shouldNotify) {
             console.log(`[kalshi-ws] threshold crossed — ${marketKey} @ ${(price * 100).toFixed(0)}¢`);
-            await (0, notifier_1.notify)(wf, node, price);
+            await (0, notifier_1.notify)(wf, node, price, this.supabase);
             stateUpdate.threshold_triggered = true;
             stateUpdate.last_triggered_at = new Date().toISOString();
         }

@@ -174,7 +174,7 @@ class PolymarketWSManager {
         };
         if (shouldNotify) {
             console.log(`[polymarket-ws] threshold crossed — ${slug} @ ${(price * 100).toFixed(0)}¢`);
-            await (0, notifier_1.notify)(wf, node, price);
+            await (0, notifier_1.notify)(wf, node, price, this.supabase);
             stateUpdate.threshold_triggered = true;
             stateUpdate.last_triggered_at = new Date().toISOString();
         }

@@ -41,8 +41,8 @@
 
 ### Worker / app parity
 
-- [ ] **Unify notification logic** — worker `notifier.ts` fires all discord/email nodes (ignores graph edges); app uses `WorkflowGraph`. Worker also doesn’t send SMS or write to `workflow_runs`.
-- [ ] **Fix AgentMail inbox typo in worker** — `arbworflow@agentmail.to` should be `marketping@agentmail.to` (app already uses correct inbox).
+- [x] **Unify notification logic** — worker respects graph edges, sends Discord/email/SMS, and writes `workflow_runs` plus workflow status.
+- [x] **Fix AgentMail inbox typo in worker** — worker now sends from `marketping@agentmail.to`.
 
 ### Security & infra (lower urgency — app uses service-role key)
 

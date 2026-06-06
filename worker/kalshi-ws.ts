@@ -141,7 +141,7 @@ export class KalshiWSManager {
 
     if (shouldNotify) {
       console.log(`[kalshi-ws] threshold crossed — ${marketKey} @ ${(price * 100).toFixed(0)}¢`);
-      await notify(wf, node, price);
+      await notify(wf, node, price, this.supabase);
       stateUpdate.threshold_triggered = true;
       stateUpdate.last_triggered_at   = new Date().toISOString();
     }

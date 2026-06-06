@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { notify } from '../notifier';
 
 const AGENTMAIL_ENDPOINT =
-  'https://api.agentmail.to/v0/inboxes/arbworflow@agentmail.to/messages/send';
+  'https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send';
 
 function makeKalshiNode(overrides: Record<string, any> = {}) {
   return {
@@ -42,11 +42,25 @@ function makeDiscordNode(overrides: Record<string, any> = {}) {
   };
 }
 
-function makeWorkflow(actionNodes: any[]) {
+function makeSmsNode(overrides: Record<string, any> = {}) {
+  return {
+    id: 'sms-1',
+    type: 'sms',
+    config: {
+      toPhone: '+14155550123',
+      messageTemplate: 'MarketPing: {{market}} at {{price}}',
+      smsConsent: true,
+      ...overrides,
+    },
+  };
+}
+
+function makeWorkflow(actionNodes: any[], edges?: { source: string; target: string }[]) {
   return {
     id: 'wf-1',
     enabled: true,
     nodes: [makeKalshiNode(), ...actionNodes],
+    edges,
   };
 }
 
@@ -96,15 +110,15 @@ describe('notify — email', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('skips send and logs error when AGENT_MAIL_API_KEY is not set', async () => {
+  it('returns an error when AGENT_MAIL_API_KEY is not set', async () => {
     delete process.env.AGENT_MAIL_API_KEY;
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await notify(makeWorkflow([makeEmailNode()]), makeKalshiNode(), 0.50);
+    const results = await notify(makeWorkflow([makeEmailNode()]), makeKalshiNode(), 0.50);
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('AGENT_MAIL_API_KEY'));
-    consoleSpy.mockRestore();
+    expect(results).toEqual(expect.arrayContaining([
+      expect.objectContaining({ nodeId: 'email-1', status: 'error', message: 'AGENT_MAIL_API_KEY not set' }),
+    ]));
   });
 
   it('formats price in cents with the ¢ symbol', async () => {
@@ -209,6 +223,160 @@ describe('notify — multiple action nodes', () => {
   it('sends nothing when the workflow has no action nodes', async () => {
     await notify({ id: 'wf-1', enabled: true, nodes: [makeKalshiNode()] }, makeKalshiNode(), 0.50);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('notify — graph routing', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    process.env.AGENT_MAIL_API_KEY = 'test-api-key';
+    fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    delete process.env.AGENT_MAIL_API_KEY;
+    vi.unstubAllGlobals();
+  });
+
+  it('fires only actions connected to the triggering source', async () => {
+    const otherSource = {
+      id: 'source-2',
+      type: 'kalshi',
+      config: { marketTicker: 'TICKER-B', priceThreshold: '0.40', direction: 'above' },
+    };
+    const workflow = {
+      id: 'wf-1',
+      nodes: [makeKalshiNode(), otherSource, makeEmailNode(), makeDiscordNode()],
+      edges: [
+        { source: 'source-1', target: 'email-1' },
+        { source: 'source-2', target: 'discord-1' },
+      ],
+    };
+
+    const results = await notify(workflow, makeKalshiNode(), 0.50);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0][0]).toBe(AGENTMAIL_ENDPOINT);
+    expect(results.map(result => result.nodeId)).toEqual(['source-1', 'email-1']);
+  });
+
+  it('falls back to all actions for legacy workflows without edges', async () => {
+    await notify(makeWorkflow([makeEmailNode(), makeDiscordNode()]), makeKalshiNode(), 0.50);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('notify — SMS', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    process.env.TWILIO_ACCOUNT_SID = 'ACtest';
+    process.env.TWILIO_API_KEY_SID = 'SKtest';
+    process.env.TWILIO_API_KEY_SECRET = 'secret';
+    process.env.TWILIO_PHONE_NUMBER = '+18443521200';
+    fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_API_KEY_SID;
+    delete process.env.TWILIO_API_KEY_SECRET;
+    delete process.env.TWILIO_PHONE_NUMBER;
+    vi.unstubAllGlobals();
+  });
+
+  it('sends SMS through Twilio using API key authentication', async () => {
+    const results = await notify(makeWorkflow([makeSmsNode()]), makeKalshiNode(), 0.50);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.twilio.com/2010-04-01/Accounts/ACtest/Messages.json');
+    expect(options.headers.Authorization).toBe(`Basic ${Buffer.from('SKtest:secret').toString('base64')}`);
+    expect(options.body).toContain('To=%2B14155550123');
+    expect(options.body).toContain('From=%2B18443521200');
+    expect(results[1]).toEqual(expect.objectContaining({ nodeId: 'sms-1', status: 'ok' }));
+  });
+
+  it('does not send without affirmative SMS consent', async () => {
+    const results = await notify(
+      makeWorkflow([makeSmsNode({ smsConsent: false })]),
+      makeKalshiNode(),
+      0.50
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(results[1]).toEqual(expect.objectContaining({
+      nodeId: 'sms-1',
+      status: 'error',
+      message: 'SMS consent has not been confirmed',
+    }));
+  });
+});
+
+describe('notify — run logging', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('writes worker run history and workflow status', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'workflow_runs') return { insert };
+        if (table === 'workflows') return { update };
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    await notify(makeWorkflow([makeDiscordNode()]), makeKalshiNode(), 0.50, supabase as any);
+
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      workflow_id: 'wf-1',
+      status: 'success',
+      triggered_by: 'worker',
+      results: expect.arrayContaining([
+        expect.objectContaining({ nodeId: 'source-1', type: 'kalshi', status: 'ok' }),
+        expect.objectContaining({ nodeId: 'discord-1', status: 'ok' }),
+      ]),
+    }));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ last_status: 'success' }));
+    expect(eq).toHaveBeenCalledWith('id', 'wf-1');
+  });
+
+  it('records error status when any provider fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    }));
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      from: vi.fn((table: string) =>
+        table === 'workflow_runs' ? { insert } : { update }
+      ),
+    };
+
+    const results = await notify(
+      makeWorkflow([makeDiscordNode()]),
+      makeKalshiNode(),
+      0.50,
+      supabase as any
+    );
+
+    expect(results.some(result => result.status === 'error')).toBe(true);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ status: 'error' }));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ last_status: 'error' }));
   });
 });
 
