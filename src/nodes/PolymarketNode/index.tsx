@@ -152,7 +152,7 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
         onChange={v => set('outcomeIndex', v)}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-3">
         <div className="nodrag nopan">
           <Label htmlFor="poly-threshold">Price Threshold</Label>
           <input

@@ -44,7 +44,7 @@ export function SegmentedControl({ id, label, value, options, onChange, classNam
               key={opt.value}
               type="button"
               className={cn(
-                'nodrag nopan flex-1 min-w-0 rounded-md border border-transparent px-2 py-2 text-xs font-medium transition-all',
+                'nodrag nopan min-w-0 flex-1 rounded-md border border-transparent px-2 py-2 text-xs font-medium whitespace-nowrap transition-all',
                 'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/50',
                 active
                   ? activeTone[tone]
@@ -55,7 +55,7 @@ export function SegmentedControl({ id, label, value, options, onChange, classNam
               onMouseDown={e => e.stopPropagation()}
               onClick={() => onChange(opt.value)}
             >
-              <span className="block truncate">{opt.label}</span>
+              <span className="block">{opt.label}</span>
             </button>
           );
         })}

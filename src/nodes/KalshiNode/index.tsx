@@ -126,7 +126,7 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 items-end">
+      <div className="space-y-3">
         <div className="nodrag nopan">
           <Label htmlFor="kalshi-threshold">Price Threshold</Label>
           <input
