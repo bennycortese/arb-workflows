@@ -480,6 +480,7 @@ export default function WorkflowBuilder() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
   const [fetchingWorkflow, setFetchingWorkflow] = useState(false);
+  const initializedWorkflowRef = useRef<string | null>(null);
 
   // If we landed directly on /workflow/[id] (page refresh), fetch from API
   useEffect(() => {
@@ -514,7 +515,8 @@ export default function WorkflowBuilder() {
 
   // Init React Flow state from jotai on workflow load
   useEffect(() => {
-    if (!workflow) return;
+    if (!workflow || initializedWorkflowRef.current === workflowId) return;
+    initializedWorkflowRef.current = workflowId;
     setRFNodes(workflow.nodes.map(n => ({
       id: n.id,
       type: n.type,
@@ -524,8 +526,7 @@ export default function WorkflowBuilder() {
     setRFEdges((workflow.edges ?? []).map(e =>
       makeEdge(e.source, e.target, onWaypointChange, e.waypoint)
     ));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId]);
+  }, [workflow, workflowId, onWaypointChange, setRFEdges, setRFNodes]);
 
   // Persist drag positions → jotai
   const onNodeDragStop = useCallback((_: React.MouseEvent, node: RFNode) => {
