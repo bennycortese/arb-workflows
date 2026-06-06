@@ -229,7 +229,7 @@ const NODE_TYPES = [
         <path d="M21 4L3 11l7 2.5M21 4l-4 16-7-6.5M21 4L10 13.5M10 13.5V19l3-3" stroke="#38bdf8" strokeWidth="1.5" strokeLinejoin="round"/>
       </svg>
     ),
-    description: 'Send instant alerts to a private chat, group, or channel through a Telegram bot.',
+    description: 'Send instant alerts to a private chat or group through the MarketPing Telegram bot.',
     features: ['Private chats and groups', 'Custom message templates', 'Bot API delivery'],
   },
   {

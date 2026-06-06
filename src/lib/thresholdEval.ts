@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fillTemplate } from './template';
 import { WorkflowGraph } from './workflowGraph';
+import { assertTelegramChatSignature, sendTelegramMessage } from './telegram';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -128,16 +129,6 @@ async function sendWebhook(
     signal: AbortSignal.timeout(10_000),
   });
   if (!resp.ok) throw new Error(`Webhook failed: ${resp.status} ${resp.statusText}`);
-}
-
-async function sendTelegram(botToken: string, chatId: string, text: string): Promise<void> {
-  if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken)) throw new Error('Invalid Telegram bot token');
-  const resp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-  });
-  if (!resp.ok) throw new Error(`Telegram API failed: ${resp.status} ${await resp.text()}`);
 }
 
 async function sendSlack(webhookUrl: string, text: string): Promise<void> {
@@ -354,10 +345,10 @@ export async function evaluateAndNotify(
         }
 
         if (node.type === 'telegram') {
-          const { botToken, chatId, messageTemplate } = node.config;
-          if (!botToken) throw new Error('Telegram bot token not configured');
+          const { chatId, chatSignature, messageTemplate } = node.config;
           if (!chatId) throw new Error('Telegram chat ID not configured');
-          await sendTelegram(botToken, chatId, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+          assertTelegramChatSignature(chatId, chatSignature ?? '');
+          await sendTelegramMessage(chatId, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
           results.push({ nodeId: node.id, type: 'telegram', status: 'ok', message: `Telegram message sent (${vars.platform}: ${vars.market})` });
         }
 

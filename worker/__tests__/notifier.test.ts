@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { createHmac } from 'crypto';
 import { notify } from '../notifier';
 
 const AGENTMAIL_ENDPOINT =
@@ -73,8 +74,11 @@ function makeTelegramNode(overrides: Record<string, any> = {}) {
     id: 'telegram-1',
     type: 'telegram',
     config: {
-      botToken: '123456:ABC_def',
       chatId: '-1001234567890',
+      chatLabel: 'MarketPing Test',
+      chatSignature: createHmac('sha256', '123456:ABC_def')
+        .update('-1001234567890')
+        .digest('hex'),
       messageTemplate: '{{market}} hit {{price}}',
       ...overrides,
     },
@@ -399,6 +403,15 @@ describe('notify — generic webhook', () => {
 });
 
 describe('notify — Telegram', () => {
+  beforeEach(() => {
+    process.env.TELEGRAM_BOT_TOKEN = '123456:ABC_def';
+  });
+
+  afterEach(() => {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    vi.unstubAllGlobals();
+  });
+
   it('calls sendMessage with the configured chat', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal('fetch', fetchMock);
@@ -414,15 +427,28 @@ describe('notify — Telegram', () => {
       disable_web_page_preview: true,
     });
     expect(results[1]).toEqual(expect.objectContaining({ type: 'telegram', status: 'ok' }));
-    vi.unstubAllGlobals();
   });
 
-  it('rejects malformed bot tokens before sending', async () => {
+  it('returns an error when the server bot token is missing', async () => {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const results = await notify(makeWorkflow([makeTelegramNode()]), makeKalshiNode(), 0.50);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(results[1]).toEqual(expect.objectContaining({
+      status: 'error',
+      message: 'TELEGRAM_BOT_TOKEN not set',
+    }));
+  });
+
+  it('rejects chat IDs that were not connected through MarketPing', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
     const results = await notify(
-      makeWorkflow([makeTelegramNode({ botToken: 'not-a-token' })]),
+      makeWorkflow([makeTelegramNode({ chatId: '999', chatSignature: 'bad' })]),
       makeKalshiNode(),
       0.50
     );
@@ -430,9 +456,8 @@ describe('notify — Telegram', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(results[1]).toEqual(expect.objectContaining({
       status: 'error',
-      message: 'Invalid Telegram bot token',
+      message: 'Telegram destination is not connected',
     }));
-    vi.unstubAllGlobals();
   });
 });
 

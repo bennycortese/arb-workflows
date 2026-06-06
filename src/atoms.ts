@@ -49,8 +49,9 @@ export interface WebhookConfig {
 }
 
 export interface TelegramConfig {
-  botToken: string;
   chatId: string;
+  chatLabel: string;
+  chatSignature: string;
   messageTemplate: string;
 }
 
@@ -133,8 +134,9 @@ export const defaultWebhookConfig: WebhookConfig = {
 };
 
 export const defaultTelegramConfig: TelegramConfig = {
-  botToken: '',
   chatId: '',
+  chatLabel: '',
+  chatSignature: '',
   messageTemplate: 'MarketPing: {{market}} crossed {{threshold}} - now {{price}} on {{platform}}. {{url}}',
 };
 

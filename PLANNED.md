@@ -79,7 +79,7 @@
 - [ ] Reconcile worker vs cron paths (avoid duplicate/missed alerts)
 
 ### New nodes
-- [x] **Telegram node** — send message via Bot API
+- [x] **Telegram node** — first-party MarketPing bot with account-linked chats
 - [x] **Slack node** — post to channel via webhook
 - [x] **Webhook node** — fire structured HTTP request with market data
 - [ ] **Filter node** — conditional logic (e.g. only trigger if volume > X)

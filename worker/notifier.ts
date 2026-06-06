@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { fillTemplate } from './template';
 
 type NodeType =
@@ -93,12 +94,11 @@ export async function notify(
       }
 
       if (type === 'telegram') {
-        const botToken = stringConfig(action, 'botToken');
         const chatId = stringConfig(action, 'chatId');
-        if (!botToken) throw new Error('Telegram bot token not configured');
+        const chatSignature = stringConfig(action, 'chatSignature');
         if (!chatId) throw new Error('Telegram chat ID not configured');
+        assertTelegramChatSignature(chatId, chatSignature);
         await sendTelegram(
-          botToken,
           chatId,
           fillTemplate(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars)
         );
@@ -287,7 +287,9 @@ async function sendWebhook(
   if (!response.ok) throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
 }
 
-async function sendTelegram(botToken: string, chatId: string, text: string): Promise<void> {
+async function sendTelegram(chatId: string, text: string): Promise<void> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) throw new Error('TELEGRAM_BOT_TOKEN not set');
   if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken)) throw new Error('Invalid Telegram bot token');
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
@@ -295,6 +297,19 @@ async function sendTelegram(botToken: string, chatId: string, text: string): Pro
     body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
   });
   if (!response.ok) throw new Error(`Telegram API failed: ${response.status} ${await response.text()}`);
+}
+
+function assertTelegramChatSignature(chatId: string, signature: string): void {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) throw new Error('TELEGRAM_BOT_TOKEN not set');
+  const expected = Buffer.from(
+    createHmac('sha256', botToken).update(chatId).digest('hex'),
+    'hex'
+  );
+  const actual = Buffer.from(signature, 'hex');
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    throw new Error('Telegram destination is not connected');
+  }
 }
 
 async function sendSlack(webhookUrl: string, text: string): Promise<void> {

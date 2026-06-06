@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/sms-opt-in',
   '/terms',
   '/api/stripe/webhook',
+  '/api/telegram/webhook',
   '/api/poll-all',
 ]);
 
@@ -18,6 +19,8 @@ const isSubscribedRoute = createRouteMatcher([
   '/api/workflows(.*)',
   '/api/kalshi(.*)',
   '/api/polymarket(.*)',
+  '/api/telegram/connect',
+  '/api/telegram/connections',
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

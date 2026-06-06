@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notify = notify;
+const crypto_1 = require("crypto");
 const template_1 = require("./template");
 async function notify(workflow, sourceNode, price, supabase) {
     const vars = notificationVars(sourceNode, price);
@@ -45,13 +46,12 @@ async function notify(workflow, sourceNode, price, supabase) {
                 results.push(ok(action, `Webhook delivered (${vars.platform}: ${vars.market})`));
             }
             if (type === 'telegram') {
-                const botToken = stringConfig(action, 'botToken');
                 const chatId = stringConfig(action, 'chatId');
-                if (!botToken)
-                    throw new Error('Telegram bot token not configured');
+                const chatSignature = stringConfig(action, 'chatSignature');
                 if (!chatId)
                     throw new Error('Telegram chat ID not configured');
-                await sendTelegram(botToken, chatId, (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars));
+                assertTelegramChatSignature(chatId, chatSignature);
+                await sendTelegram(chatId, (0, template_1.fillTemplate)(stringConfig(action, 'messageTemplate') || '{{market}}: {{price}}', vars));
                 results.push(ok(action, `Telegram message sent (${vars.platform}: ${vars.market})`));
             }
             if (type === 'slack') {
@@ -210,7 +210,10 @@ async function sendWebhook(webhookUrl, secret, message, vars) {
     if (!response.ok)
         throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
 }
-async function sendTelegram(botToken, chatId, text) {
+async function sendTelegram(chatId, text) {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken)
+        throw new Error('TELEGRAM_BOT_TOKEN not set');
     if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken))
         throw new Error('Invalid Telegram bot token');
     const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -220,6 +223,16 @@ async function sendTelegram(botToken, chatId, text) {
     });
     if (!response.ok)
         throw new Error(`Telegram API failed: ${response.status} ${await response.text()}`);
+}
+function assertTelegramChatSignature(chatId, signature) {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (!botToken)
+        throw new Error('TELEGRAM_BOT_TOKEN not set');
+    const expected = Buffer.from((0, crypto_1.createHmac)('sha256', botToken).update(chatId).digest('hex'), 'hex');
+    const actual = Buffer.from(signature, 'hex');
+    if (actual.length !== expected.length || !(0, crypto_1.timingSafeEqual)(actual, expected)) {
+        throw new Error('Telegram destination is not connected');
+    }
 }
 async function sendSlack(webhookUrl, text) {
     const url = validatePublicHttpsUrl(webhookUrl);
