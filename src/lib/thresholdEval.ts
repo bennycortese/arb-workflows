@@ -38,12 +38,18 @@ export async function sendDiscord(webhookUrl: string, content: string): Promise<
 
 export async function sendSms(to: string, body: string): Promise<void> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken  = process.env.TWILIO_AUTH_TOKEN;
-  const from       = process.env.TWILIO_FROM_NUMBER;
-  if (!accountSid || !authToken || !from) throw new Error('Twilio env vars not set');
+  const apiKeySid = process.env.TWILIO_API_KEY_SID;
+  const apiKeySecret = process.env.TWILIO_API_KEY_SECRET;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_PHONE_NUMBER ?? process.env.TWILIO_FROM_NUMBER;
+  if (!accountSid || !from || (!authToken && (!apiKeySid || !apiKeySecret))) {
+    throw new Error('Twilio env vars not set');
+  }
 
   const { default: Twilio } = await import('twilio');
-  const client = Twilio(accountSid, authToken);
+  const client = apiKeySid && apiKeySecret
+    ? Twilio(apiKeySid, apiKeySecret, { accountSid })
+    : Twilio(accountSid, authToken!);
   await client.messages.create({ to, from, body });
 }
 
