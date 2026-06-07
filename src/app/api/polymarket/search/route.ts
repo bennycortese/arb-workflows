@@ -50,8 +50,7 @@ async function textSearch(q: string): Promise<any[]> {
   const res = await gFetch(url);
   if (!res.ok) return [];
   const events: any[] = await res.json();
-  // Flatten all markets from matching events, up to 9 total
-  return events.flatMap((e: any) => e.markets || []).slice(0, 9);
+  return events.flatMap((e: any) => e.markets || []);
 }
 
 export async function GET(request: NextRequest) {
