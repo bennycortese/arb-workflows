@@ -52,6 +52,90 @@ const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source'
   { type: 'slack',     label: 'Slack',      desc: 'Post to channel',       role: 'action', color: '#c084fc' },
 ];
 
+function NodePickerIcon({ type, color }: { type: NodeType; color: string }) {
+  let icon: React.ReactNode;
+
+  switch (type) {
+    case 'kalshi':
+      icon = (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M3 3v18h18" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="m7 16 4-4 4 4 4-4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      );
+      break;
+    case 'polymarket':
+      icon = (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2"/>
+          <path d="M12 3c0 0 4 3 4 9s-4 9-4 9M12 3c0 0-4 3-4 9s4 9 4 9M3 12h18" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      );
+      break;
+    case 'discord':
+      icon = (
+        <svg width="17" height="14" viewBox="0 0 71 55" fill="none">
+          <path d="M60.1 4.9A58.5 58.5 0 0 0 45.5.9a.2.2 0 0 0-.2.1 40.8 40.8 0 0 0-1.8 3.7 54 54 0 0 0-16.2 0A37.3 37.3 0 0 0 25.5 1a.2.2 0 0 0-.2-.1A58.4 58.4 0 0 0 10.7 4.9a.2.2 0 0 0-.1.1C1.6 18.1-.9 31 .3 43.7a.2.2 0 0 0 .1.1 58.8 58.8 0 0 0 17.7 8.9.2.2 0 0 0 .2-.1 42 42 0 0 0 3.6-5.9.2.2 0 0 0-.1-.3 38.7 38.7 0 0 1-5.5-2.6.2.2 0 0 1 0-.4c.4-.3.7-.6 1.1-.9a.2.2 0 0 1 .2 0c11.5 5.3 24 5.3 35.4 0a.2.2 0 0 1 .2 0c.4.3.7.6 1.1.9a.2.2 0 0 1 0 .4 36.1 36.1 0 0 1-5.5 2.6.2.2 0 0 0-.1.3 47 47 0 0 0 3.6 5.9.2.2 0 0 0 .2.1 58.6 58.6 0 0 0 17.8-8.9.2.2 0 0 0 .1-.1C72.9 29.3 70 16.5 60.2 5a.2.2 0 0 0-.1-.1ZM23.7 36.3c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 4-2.8 7.1-6.4 7.1Zm23.7 0c-3.5 0-6.4-3.2-6.4-7.1 0-4 2.8-7.1 6.4-7.1 3.6 0 6.5 3.2 6.4 7.1 0 4-2.8 7.1-6.4 7.1Z" fill={color}/>
+        </svg>
+      );
+      break;
+    case 'email':
+      icon = (
+        <svg width="17" height="14" viewBox="0 0 24 20" fill="none">
+          <rect x="1" y="1" width="22" height="18" rx="2" stroke={color} strokeWidth="1.5"/>
+          <path d="M1 4l11 8 11-8" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      );
+      break;
+    case 'sms':
+      icon = (
+        <svg width="15" height="17" viewBox="0 0 24 24" fill="none">
+          <rect x="5" y="2" width="14" height="20" rx="3" stroke={color} strokeWidth="1.5"/>
+          <path d="M9 18h6" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+          <rect x="8" y="6" width="8" height="7" rx="1" stroke={color} strokeWidth="1.25"/>
+        </svg>
+      );
+      break;
+    case 'telegram':
+      icon = (
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <path d="M21 4L3 11l7 2.5M21 4l-4 16-7-6.5M21 4L10 13.5M10 13.5V19l3-3" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+        </svg>
+      );
+      break;
+    case 'slack':
+      icon = (
+        <svg width="17" height="17" viewBox="0 0 24 24">
+          <rect x="10" y="2" width="4" height="9" rx="2" fill="#36c5f0"/>
+          <rect x="13" y="10" width="9" height="4" rx="2" fill="#2eb67d"/>
+          <rect x="10" y="13" width="4" height="9" rx="2" fill="#ecb22e"/>
+          <rect x="2" y="10" width="9" height="4" rx="2" fill="#e01e5a"/>
+          <circle cx="7" cy="7" r="2" fill="#36c5f0"/>
+          <circle cx="17" cy="7" r="2" fill="#2eb67d"/>
+          <circle cx="17" cy="17" r="2" fill="#ecb22e"/>
+          <circle cx="7" cy="17" r="2" fill="#e01e5a"/>
+        </svg>
+      );
+      break;
+    case 'webhook':
+      icon = <span className="font-mono text-[11px] font-bold" style={{ color }}>{'{ }'}</span>;
+      break;
+  }
+
+  return (
+    <span
+      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+      style={{
+        color,
+        background: `${color}16`,
+        border: `1px solid ${color}38`,
+      }}
+    >
+      {icon}
+    </span>
+  );
+}
+
 function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClose: () => void }) {
   const t = useTranslations('builder');
   return (
@@ -66,7 +150,7 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
               onClick={() => { onPick(opt.type); onClose(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left group"
             >
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: opt.color }} />
+              <NodePickerIcon type={opt.type} color={opt.color} />
               <div>
                 <div className="text-sm text-white font-medium">{opt.label}</div>
                 <div className="text-xs text-white/40">{opt.desc}</div>
@@ -80,7 +164,7 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
               onClick={() => { onPick(opt.type); onClose(); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left group"
             >
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: opt.color }} />
+              <NodePickerIcon type={opt.type} color={opt.color} />
               <div>
                 <div className="text-sm text-white font-medium">{opt.label}</div>
                 <div className="text-xs text-white/40">{opt.desc}</div>
