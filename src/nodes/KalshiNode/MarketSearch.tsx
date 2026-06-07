@@ -284,7 +284,7 @@ export function MarketSearch({ results, onSelect }: Props) {
     : results;
 
   return (
-    <div style={{
+    <div className="nowheel nodrag nopan" style={{
       position: 'absolute',
       top: 'calc(100% + 6px)',
       left: '50%',
@@ -326,9 +326,12 @@ export function MarketSearch({ results, onSelect }: Props) {
       </div>
 
       <div
-        className="grid grid-cols-3 gap-2 overflow-y-auto p-3"
-        style={{ maxHeight: 'min(520px, 65vh)', overscrollBehavior: 'contain' }}
-        onWheel={e => e.stopPropagation()}
+        className="nowheel grid grid-cols-3 gap-2 overflow-y-scroll p-3"
+        style={{
+          height: 'min(520px, 65vh)',
+          overscrollBehavior: 'contain',
+          scrollbarGutter: 'stable',
+        }}
       >
         {filteredResults.map((m, i) => (
           <MarketCard key={`${m.ticker}-${i}`} market={m} onSelect={onSelect} />
