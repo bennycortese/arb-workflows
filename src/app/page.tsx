@@ -4,9 +4,21 @@ const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
     {
+      '@type': 'WebSite',
+      '@id': 'https://www.marketping.ai/#website',
+      url: 'https://www.marketping.ai',
+      name: 'MarketPing',
+      alternateName: 'MarketPing AI',
+      description: 'Automated Kalshi and Polymarket price alerts.',
+    },
+    {
       '@type': 'SoftwareApplication',
+      '@id': 'https://www.marketping.ai/#software',
       name: 'MarketPing',
       url: 'https://www.marketping.ai',
+      isPartOf: {
+        '@id': 'https://www.marketping.ai/#website',
+      },
       applicationCategory: 'FinanceApplication',
       operatingSystem: 'Web',
       description: 'No-code Kalshi and Polymarket monitoring with automated prediction market price alerts.',
