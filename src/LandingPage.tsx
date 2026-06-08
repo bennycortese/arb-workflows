@@ -3,15 +3,17 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { useTranslations } from 'next-intl';
 import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
+import messages from '../messages/en.json';
+
+const navCopy = messages.nav;
+const landingCopy = messages.landing;
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 function Navbar() {
   const { isSignedIn } = useUser();
   const router = useRouter();
-  const t = useTranslations('nav');
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] bg-background/80 backdrop-blur-md">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -21,19 +23,19 @@ function Navbar() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="font-semibold text-white text-sm tracking-tight">{t('brand')}</span>
-          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1" title="Early access — features and pricing may change">{t('beta')}</span>
+          <span className="font-semibold text-white text-sm tracking-tight">{navCopy.brand}</span>
+          <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1" title="Early access — features and pricing may change">{navCopy.beta}</span>
         </div>
         <div className="flex items-center gap-2">
-          <a href="#nodes" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
-          <a href="#how-it-works" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{t('howItWorks')}</a>
+          <a href="#nodes" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.nodes}</a>
+          <a href="#how-it-works" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.howItWorks}</a>
           {isSignedIn ? (
             <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
-              {t('dashboard')}
+              {navCopy.dashboard}
             </Button>
           ) : (
             <Button variant="primary" size="sm" onClick={() => router.push('/pricing')}>
-              {t('getStarted')}
+              {navCopy.getStarted}
             </Button>
           )}
         </div>
@@ -46,7 +48,6 @@ function Navbar() {
 function Hero() {
   const { isSignedIn } = useUser();
   const router = useRouter();
-  const t = useTranslations('landing');
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
       {/* Grid background */}
@@ -59,11 +60,11 @@ function Hero() {
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-8 font-semibold tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse-dot" />
-          {t('badge')}
+          {landingCopy.badge}
         </div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
-          {t('heroTitle').split('prediction markets').map((part, i) =>
+          {landingCopy.heroTitle.split('prediction markets').map((part, i) =>
             i === 0 ? (
               <React.Fragment key={i}>
                 {part}<span className="gradient-text">prediction markets</span>
@@ -73,21 +74,21 @@ function Hero() {
         </h1>
 
         <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
-          {t('heroSubtitle')}
+          {landingCopy.heroSubtitle}
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
           {isSignedIn ? (
             <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-              {t('openDashboard')}
+              {landingCopy.openDashboard}
             </Button>
           ) : (
             <>
               <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
-                {t('ctaPrimary')}
+                {landingCopy.ctaPrimary}
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <a href="#how-it-works">{t('ctaSecondary')}</a>
+                <a href="#how-it-works">{landingCopy.ctaSecondary}</a>
               </Button>
             </>
           )}
@@ -247,19 +248,18 @@ const NODE_TYPES = [
 ];
 
 function NodesSection() {
-  const t = useTranslations('landing');
   return (
     <section id="nodes" className="section-border py-24 px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <div className="badge-teal inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold tracking-wide mb-4">
-            {t('nodesSectionBadge')}
+            {landingCopy.nodesSectionBadge}
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            {t('nodesSectionTitle')}
+            {landingCopy.nodesSectionTitle}
           </h2>
           <p className="text-white/70 max-w-lg mx-auto">
-            {t('nodesSectionSubtitle')}
+            {landingCopy.nodesSectionSubtitle}
           </p>
         </div>
 
@@ -298,11 +298,10 @@ function NodesSection() {
 
 // ── How it works ──────────────────────────────────────────────────────────────
 function HowItWorks() {
-  const t = useTranslations('landing');
   const steps = [
-    { n: '01', title: t('step1Title'), body: t('step1Body'), color: 'text-cyan-400' },
-    { n: '02', title: t('step2Title'), body: t('step2Body'), color: 'text-blue-400' },
-    { n: '03', title: t('step3Title'), body: t('step3Body'), color: 'text-indigo-400' },
+    { n: '01', title: landingCopy.step1Title, body: landingCopy.step1Body, color: 'text-cyan-400' },
+    { n: '02', title: landingCopy.step2Title, body: landingCopy.step2Body, color: 'text-blue-400' },
+    { n: '03', title: landingCopy.step3Title, body: landingCopy.step3Body, color: 'text-indigo-400' },
   ];
 
   return (
@@ -310,10 +309,10 @@ function HowItWorks() {
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            {t('howItWorksTitle')}
+            {landingCopy.howItWorksTitle}
           </h2>
           <p className="text-white/70 max-w-lg mx-auto">
-            {t('howItWorksSubtitle')}
+            {landingCopy.howItWorksSubtitle}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -395,21 +394,20 @@ function FAQSection() {
 function CTA() {
   const { isSignedIn } = useUser();
   const router = useRouter();
-  const t = useTranslations('landing');
   return (
     <section className="section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          {t('ctaSectionTitle')}
+          {landingCopy.ctaSectionTitle}
         </h2>
-        <p className="text-white/70 mb-8">{t('ctaSectionSubtitle')}</p>
+        <p className="text-white/70 mb-8">{landingCopy.ctaSectionSubtitle}</p>
         {isSignedIn ? (
           <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-            {t('openDashboard')}
+            {landingCopy.openDashboard}
           </Button>
         ) : (
           <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
-            {t('ctaFree')}
+            {landingCopy.ctaFree}
           </Button>
         )}
       </div>
@@ -419,8 +417,6 @@ function CTA() {
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 function Footer() {
-  const t = useTranslations('landing');
-  const tn = useTranslations('nav');
   return (
     <footer className="section-border py-10 px-6">
       <div className="max-w-[1200px] mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -430,14 +426,14 @@ function Footer() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="text-sm text-white/70">{tn('brand')}</span>
+          <span className="text-sm text-white/70">{navCopy.brand}</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-white/65">
           <a href="/privacy" className="hover:text-white">Privacy</a>
           <a href="/terms" className="hover:text-white">Terms</a>
           <a href="mailto:bennycortese@gmail.com" className="hover:text-white">Support</a>
         </div>
-        <p className="text-xs text-white/60">{t('footerDisclaimer')}</p>
+        <p className="text-xs text-white/60">{landingCopy.footerDisclaimer}</p>
       </div>
     </footer>
   );
