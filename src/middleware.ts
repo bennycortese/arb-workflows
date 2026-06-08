@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from './lib/supabase';
 const isPublicRoute = createRouteMatcher([
   '/',
   '/kalshi-alerts',
+  '/polymarket-alerts',
   '/pricing',
   '/privacy',
   '/sms-opt-in',
