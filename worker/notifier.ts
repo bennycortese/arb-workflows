@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { fillTemplate } from './template';
+import { fetchWithRetry } from './retry';
 
 type NodeType =
   | 'kalshi'
@@ -180,7 +181,7 @@ function ok(action: WorkflowNode, message: string): NotificationResult {
 }
 
 async function sendDiscord(webhookUrl: string, content: string): Promise<void> {
-  const response = await fetch(webhookUrl, {
+  const response = await fetchWithRetry(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
@@ -192,7 +193,7 @@ async function sendEmail(to: string, subject: string, body: string): Promise<voi
   const apiKey = process.env.AGENT_MAIL_API_KEY;
   if (!apiKey) throw new Error('AGENT_MAIL_API_KEY not set');
 
-  const response = await fetch(
+  const response = await fetchWithRetry(
     'https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send',
     {
       method: 'POST',
@@ -220,7 +221,7 @@ async function sendSms(to: string, body: string): Promise<void> {
   }
 
   const payload = new URLSearchParams({ To: to, From: from, Body: body });
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
     {
       method: 'POST',
@@ -266,7 +267,7 @@ async function sendWebhook(
   vars: Record<string, string>
 ): Promise<void> {
   const url = validatePublicHttpsUrl(webhookUrl);
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -291,7 +292,7 @@ async function sendTelegram(chatId: string, text: string): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) throw new Error('TELEGRAM_BOT_TOKEN not set');
   if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken)) throw new Error('Invalid Telegram bot token');
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+  const response = await fetchWithRetry(`https://api.telegram.org/bot${botToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
@@ -315,7 +316,7 @@ function assertTelegramChatSignature(chatId: string, signature: string): void {
 async function sendSlack(webhookUrl: string, text: string): Promise<void> {
   const url = validatePublicHttpsUrl(webhookUrl);
   if (url.hostname !== 'hooks.slack.com') throw new Error('Invalid Slack webhook URL');
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),

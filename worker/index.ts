@@ -14,8 +14,10 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 const kalshiWS = new KalshiWSManager(KALSHI_API_KEY, supabase);
 const polyWS   = new PolymarketWSManager(supabase);
+const registeredWorkflowIds = new Set<string>();
 
 function registerWorkflow(wf: any) {
+  registeredWorkflowIds.add(wf.id);
   const nodes = (wf.nodes as any[]) ?? [];
   for (const node of nodes) {
     if (node.type === 'kalshi' && node.config?.marketTicker) {
@@ -24,6 +26,12 @@ function registerWorkflow(wf: any) {
       polyWS.watch(node.config.marketSlug, wf.id, node.id);
     }
   }
+}
+
+function unregisterWorkflow(workflowId: string) {
+  kalshiWS.unregisterWorkflow(workflowId);
+  polyWS.unregisterWorkflow(workflowId);
+  registeredWorkflowIds.delete(workflowId);
 }
 
 async function bootstrap() {
@@ -53,14 +61,12 @@ async function bootstrap() {
     })
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'workflows' }, ({ new: wf }) => {
       console.log('[worker] workflow updated:', wf.id, 'enabled:', wf.enabled);
-      kalshiWS.unregisterWorkflow(wf.id);
-      polyWS.unregisterWorkflow(wf.id);
+      unregisterWorkflow(wf.id);
       if (wf.enabled) registerWorkflow(wf);
     })
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'workflows' }, ({ old: wf }) => {
       console.log('[worker] workflow deleted:', wf.id);
-      kalshiWS.unregisterWorkflow(wf.id);
-      polyWS.unregisterWorkflow(wf.id);
+      unregisterWorkflow(wf.id);
     })
     .subscribe((status) => console.log('[worker] realtime status:', status));
 
@@ -68,6 +74,9 @@ async function bootstrap() {
   setInterval(async () => {
     const { data } = await supabase.from('workflows').select('*').eq('enabled', true);
     const activeIds = new Set((data ?? []).map((w: any) => w.id));
+    for (const workflowId of registeredWorkflowIds) {
+      if (!activeIds.has(workflowId)) unregisterWorkflow(workflowId);
+    }
     for (const wf of data ?? []) registerWorkflow(wf);
     console.log(`[worker] re-sync: ${activeIds.size} enabled workflow(s)`);
   }, 60_000);

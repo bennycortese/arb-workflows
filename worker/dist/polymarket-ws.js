@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PolymarketWSManager = void 0;
 const ws_1 = __importDefault(require("ws"));
-const threshold_1 = require("./threshold");
 const notifier_1 = require("./notifier");
+const retry_1 = require("./retry");
 class PolymarketWSManager {
     // conditionId → subscriptions
     subs = new Map();
@@ -87,7 +87,7 @@ class PolymarketWSManager {
         const slugs = [...this.pendingSlugs.keys()];
         await Promise.allSettled(slugs.map(async (slug) => {
             try {
-                const res = await fetch(`https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}&limit=1`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+                const res = await (0, retry_1.fetchWithRetry)(`https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(slug)}&limit=1`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
                 const data = await res.json();
                 const conditionId = data[0]?.conditionId;
                 if (!conditionId) {
@@ -150,39 +150,37 @@ class PolymarketWSManager {
         }
     }
     async processUpdate(workflowId, nodeId, slug, price) {
-        const [{ data: wf }, { data: state }] = await Promise.all([
-            this.supabase.from('workflows').select('*').eq('id', workflowId).single(),
-            this.supabase.from('workflow_market_states')
-                .select('threshold_triggered')
-                .eq('workflow_id', workflowId)
-                .eq('node_id', nodeId)
-                .single(),
-        ]);
+        const { data: wf } = await this.supabase
+            .from('workflows')
+            .select('*')
+            .eq('id', workflowId)
+            .single();
         if (!wf || !wf.enabled)
             return;
         const node = wf.nodes.find((n) => n.id === nodeId);
         if (!node)
             return;
-        const { shouldNotify, shouldReset } = (0, threshold_1.checkThreshold)(price, node.config, state);
-        const stateUpdate = {
-            workflow_id: workflowId,
-            node_id: nodeId,
-            platform: 'polymarket',
-            market_key: slug,
-            last_price: price,
-            last_checked_at: new Date().toISOString(),
-        };
-        if (shouldNotify) {
+        const threshold = parseFloat(node.config?.priceThreshold ?? '0.5');
+        const direction = node.config?.direction ?? 'any';
+        const inZone = direction === 'any' ||
+            (direction === 'above' && price >= threshold) ||
+            (direction === 'below' && price <= threshold);
+        const { data: claimed, error } = await this.supabase.rpc('claim_market_threshold', {
+            p_workflow_id: workflowId,
+            p_node_id: nodeId,
+            p_platform: 'polymarket',
+            p_market_key: slug,
+            p_price: price,
+            p_in_zone: inZone,
+        });
+        if (error) {
+            console.error('[polymarket-ws] threshold claim failed:', error.message);
+            return;
+        }
+        if (claimed === true) {
             console.log(`[polymarket-ws] threshold crossed — ${slug} @ ${(price * 100).toFixed(0)}¢`);
             await (0, notifier_1.notify)(wf, node, price, this.supabase);
-            stateUpdate.threshold_triggered = true;
-            stateUpdate.last_triggered_at = new Date().toISOString();
         }
-        if (shouldReset) {
-            stateUpdate.threshold_triggered = false;
-        }
-        await this.supabase.from('workflow_market_states')
-            .upsert(stateUpdate, { onConflict: 'workflow_id,node_id' });
     }
 }
 exports.PolymarketWSManager = PolymarketWSManager;

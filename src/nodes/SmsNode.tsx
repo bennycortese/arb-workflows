@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { ActionTestButton } from './shared/ActionTestButton';
 
 interface Props {
   config: SmsConfig;
@@ -96,6 +97,7 @@ export function SmsNodeConfig({ config, onChange }: Props) {
           Sent via Twilio · reply STOP to unsubscribe or HELP for help
         </p>
       </Card>
+      <ActionTestButton type="sms" config={config} />
     </div>
   );
 }

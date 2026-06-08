@@ -21,9 +21,10 @@ export async function GET(request: NextRequest) {
 
   // Process in batches to avoid Vercel's 60s timeout
   let ran = 0;
+  let failed = 0;
   for (let i = 0; i < workflows.length; i += BATCH_SIZE) {
     const batch = workflows.slice(i, i + BATCH_SIZE);
-    await Promise.allSettled(
+    const settled = await Promise.allSettled(
       batch.map(wf =>
         evaluateAndNotify(
           { id: wf.id, nodes: wf.nodes ?? [], edges: wf.edges ?? [] },
@@ -32,8 +33,9 @@ export async function GET(request: NextRequest) {
         )
       )
     );
+    failed += settled.filter(result => result.status === 'rejected').length;
     ran += batch.length;
   }
 
-  return NextResponse.json({ ran });
+  return NextResponse.json({ ran, failed });
 }

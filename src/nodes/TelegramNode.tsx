@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { NodeSelect } from '@/components/ui/node-select';
+import { ActionTestButton } from './shared/ActionTestButton';
 
 interface Props {
   config: TelegramConfig;
@@ -142,6 +143,7 @@ export function TelegramNodeConfig({ config, onChange }: Props) {
             : 'Connect a private chat or add the MarketPing bot to a group, then return here to select it.'}
         </p>
       </Card>
+      <ActionTestButton type="telegram" config={config} />
     </div>
   );
 }

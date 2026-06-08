@@ -33,11 +33,14 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<PolyMarketResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [outcomeOptions, setOutcomeOptions] = useState<OutcomeOption[]>([
     { label: 'Yes', price: 0 },
     { label: 'No',  price: 0 },
   ]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Unlock clipping ancestors when dropdown is open
@@ -60,12 +63,30 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
   }, [open]);
 
   const search = useCallback(async (q: string) => {
-    if (!q.trim()) { setResults([]); setOpen(false); return; }
-    const res = await fetch(`/api/polymarket/search?q=${encodeURIComponent(q)}`);
-    if (res.ok) {
+    if (!q.trim()) {
+      setResults([]);
+      setOpen(false);
+      setSearchError('');
+      return;
+    }
+    const searchId = ++searchIdRef.current;
+    setSearching(true);
+    setSearchError('');
+    try {
+      const res = await fetch(`/api/polymarket/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? `Polymarket search failed (${res.status})`);
+      if (searchId !== searchIdRef.current) return;
       setResults(data.markets || []);
-      setOpen(true);
+      setOpen((data.markets || []).length > 0);
+      if ((data.markets || []).length === 0) setSearchError('No Polymarket markets found');
+    } catch (error) {
+      if (searchId !== searchIdRef.current) return;
+      setResults([]);
+      setOpen(false);
+      setSearchError(error instanceof Error ? error.message : 'Could not search Polymarket');
+    } finally {
+      if (searchId === searchIdRef.current) setSearching(false);
     }
   }, []);
 
@@ -127,6 +148,10 @@ export function PolymarketNodeConfig({ config, onChange }: Props) {
 
             {open && results.length > 0 && (
               <PolymarketSearch results={results} onSelect={selectMarket} />
+            )}
+            {searching && <p className="mt-1 text-xs text-white/35">Searching Polymarket...</p>}
+            {!searching && searchError && (
+              <p className="mt-1 text-xs text-red-400/80">{searchError}</p>
             )}
           </>
         )}

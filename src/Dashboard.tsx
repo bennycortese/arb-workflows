@@ -223,13 +223,33 @@ function runSummary(run: RunRecord): string {
 function RunHistoryPanel() {
   const t = useTranslations('dashboard');
   const [runs, setRuns] = useState<RunRecord[] | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
-    fetch('/api/workflows/runs?limit=30')
-      .then(r => r.json())
-      .then(data => setRuns(data.runs ?? []))
-      .catch(() => setRuns([]));
+    let active = true;
+    const loadRuns = async () => {
+      try {
+        const response = await fetch('/api/workflows/runs?limit=30', { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? 'Could not load run history');
+        if (active) {
+          setRuns(data.runs ?? []);
+          setLoadError('');
+        }
+      } catch (error) {
+        if (active) {
+          setRuns(current => current ?? []);
+          setLoadError(error instanceof Error ? error.message : 'Could not load run history');
+        }
+      }
+    };
+    loadRuns();
+    const timer = window.setInterval(loadRuns, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
   }, []);
 
   const triggerLabel = (by: RunRecord['triggeredBy']) => {
@@ -252,6 +272,7 @@ function RunHistoryPanel() {
       </button>
       {expanded && (
         <div className="db-run-history-body">
+          {loadError && <p className="db-run-history-error">{loadError}</p>}
           {runs === null ? (
             <p className="db-run-history-empty">{t('runHistoryLoading')}</p>
           ) : runs.length === 0 ? (

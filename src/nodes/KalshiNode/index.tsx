@@ -21,7 +21,10 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<MarketResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Unlock every clipping ancestor so the inline dropdown isn't cut off
@@ -45,14 +48,32 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
 
   const search = useCallback(
     async (q: string) => {
-      if (!q.trim()) { setResults([]); setOpen(false); return; }
-      const res = await fetch(`/api/kalshi/search?q=${encodeURIComponent(q)}`, {
-        headers: { accept: 'application/json' },
-      });
-      if (res.ok) {
+      if (!q.trim()) {
+        setResults([]);
+        setOpen(false);
+        setSearchError('');
+        return;
+      }
+      const searchId = ++searchIdRef.current;
+      setSearching(true);
+      setSearchError('');
+      try {
+        const res = await fetch(`/api/kalshi/search?q=${encodeURIComponent(q)}`, {
+          headers: { accept: 'application/json' },
+        });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? `Kalshi search failed (${res.status})`);
+        if (searchId !== searchIdRef.current) return;
         setResults(data.markets || []);
-        setOpen(true);
+        setOpen((data.markets || []).length > 0);
+        if ((data.markets || []).length === 0) setSearchError('No Kalshi markets found');
+      } catch (error) {
+        if (searchId !== searchIdRef.current) return;
+        setResults([]);
+        setOpen(false);
+        setSearchError(error instanceof Error ? error.message : 'Could not search Kalshi');
+      } finally {
+        if (searchId === searchIdRef.current) setSearching(false);
       }
     },
     []
@@ -108,6 +129,10 @@ export function KalshiNodeConfig({ config, onChange }: Props) {
 
             {open && results.length > 0 && (
               <MarketSearch results={results} onSelect={selectMarket} />
+            )}
+            {searching && <p className="mt-1 text-xs text-white/35">Searching Kalshi...</p>}
+            {!searching && searchError && (
+              <p className="mt-1 text-xs text-red-400/80">{searchError}</p>
             )}
           </>
         )}

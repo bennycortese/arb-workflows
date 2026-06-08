@@ -1,10 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchWithRetry } from '../../../../lib/retry';
 
 const GAMMA = 'https://gamma-api.polymarket.com';
 
 async function gFetch(url: string) {
-  return fetch(url, {
+  return fetchWithRetry(url, {
     signal: AbortSignal.timeout(8000),
     headers: { accept: 'application/json' },
   });

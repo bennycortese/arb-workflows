@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { fillTemplate } from './template';
 import { WorkflowGraph } from './workflowGraph';
 import { assertTelegramChatSignature, sendTelegramMessage } from './telegram';
+import { fetchWithRetry } from './retry';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ export interface RunResult {
 // ── Notification helpers ───────────────────────────────────────────────────────
 
 export async function sendDiscord(webhookUrl: string, content: string): Promise<void> {
-  const resp = await fetch(webhookUrl, {
+  const resp = await fetchWithRetry(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
@@ -51,22 +52,35 @@ export async function sendSms(to: string, body: string): Promise<void> {
   const apiKeySecret = process.env.TWILIO_API_KEY_SECRET;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_PHONE_NUMBER ?? process.env.TWILIO_FROM_NUMBER;
-  if (!accountSid || !from || (!authToken && (!apiKeySid || !apiKeySecret))) {
+  const username = apiKeySid ?? accountSid;
+  const password = apiKeySecret ?? authToken;
+  if (!accountSid || !username || !password || !from) {
     throw new Error('Twilio env vars not set');
   }
 
-  const { default: Twilio } = await import('twilio');
-  const client = apiKeySid && apiKeySecret
-    ? Twilio(apiKeySid, apiKeySecret, { accountSid })
-    : Twilio(accountSid, authToken!);
-  await client.messages.create({ to, from, body });
+  const payload = new URLSearchParams({ To: to, From: from, Body: body });
+  const response = await fetchWithRetry(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: payload.toString(),
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Twilio API ${response.status}: ${await response.text()}`);
+  }
 }
 
 export async function sendEmail(to: string, subject: string, body: string): Promise<void> {
   const apiKey = process.env.AGENT_MAIL_API_KEY;
   if (!apiKey) throw new Error('AGENT_MAIL_API_KEY not set in server env');
 
-  const resp = await fetch('https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send', {
+  const resp = await fetchWithRetry('https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -110,7 +124,7 @@ async function sendWebhook(
   vars: Record<string, string>
 ): Promise<void> {
   const url = validatePublicHttpsUrl(webhookUrl);
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetry(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -134,12 +148,94 @@ async function sendWebhook(
 async function sendSlack(webhookUrl: string, text: string): Promise<void> {
   const url = validatePublicHttpsUrl(webhookUrl);
   if (url.hostname !== 'hooks.slack.com') throw new Error('Invalid Slack webhook URL');
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetry(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
   if (!resp.ok) throw new Error(`Slack webhook failed: ${resp.status} ${resp.statusText}`);
+}
+
+const TEST_VARS: Record<string, string> = {
+  platform: 'MarketPing Test',
+  market: 'Test market',
+  price: '57¢',
+  threshold: '50¢',
+  direction: 'above',
+  url: 'https://www.marketping.ai',
+};
+
+export async function sendActionNotification(
+  node: WorkflowNode,
+  vars: Record<string, string>,
+): Promise<RunResult> {
+  try {
+    if (node.type === 'discord') {
+      const { webhookUrl, messageTemplate } = node.config;
+      if (!webhookUrl) throw new Error('Webhook URL not configured');
+      await sendDiscord(webhookUrl, fillTemplate(messageTemplate ?? '{{market}} hit {{price}}', vars));
+      return { nodeId: node.id, type: 'discord', status: 'ok', message: 'Test message sent to Discord' };
+    }
+
+    if (node.type === 'email') {
+      const { toEmail, subject, bodyTemplate } = node.config;
+      if (!toEmail) throw new Error('Recipient email not configured');
+      await sendEmail(
+        toEmail,
+        fillTemplate(subject ?? 'MarketPing Alert', vars),
+        fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', vars),
+      );
+      return { nodeId: node.id, type: 'email', status: 'ok', message: `Test email sent to ${toEmail}` };
+    }
+
+    if (node.type === 'sms') {
+      const { toPhone, messageTemplate, smsConsent } = node.config;
+      if (!toPhone) throw new Error('Phone number not configured');
+      if (smsConsent !== true) throw new Error('SMS consent has not been confirmed');
+      await sendSms(toPhone, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+      return { nodeId: node.id, type: 'sms', status: 'ok', message: `Test SMS sent to ${toPhone}` };
+    }
+
+    if (node.type === 'webhook') {
+      const { webhookUrl, secret, messageTemplate } = node.config;
+      if (!webhookUrl) throw new Error('Webhook URL not configured');
+      await sendWebhook(
+        webhookUrl,
+        secret ?? '',
+        fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars),
+        vars,
+      );
+      return { nodeId: node.id, type: 'webhook', status: 'ok', message: 'Test webhook delivered' };
+    }
+
+    if (node.type === 'telegram') {
+      const { chatId, chatSignature, messageTemplate } = node.config;
+      if (!chatId) throw new Error('Telegram chat ID not configured');
+      assertTelegramChatSignature(chatId, chatSignature ?? '');
+      await sendTelegramMessage(chatId, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+      return { nodeId: node.id, type: 'telegram', status: 'ok', message: 'Test Telegram message sent' };
+    }
+
+    if (node.type === 'slack') {
+      const { webhookUrl, messageTemplate } = node.config;
+      if (!webhookUrl) throw new Error('Slack webhook URL not configured');
+      await sendSlack(webhookUrl, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
+      return { nodeId: node.id, type: 'slack', status: 'ok', message: 'Test Slack message sent' };
+    }
+
+    throw new Error('Unsupported action type');
+  } catch (error) {
+    return {
+      nodeId: node.id,
+      type: node.type,
+      status: 'error',
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export function testNotificationVars(): Record<string, string> {
+  return { ...TEST_VARS };
 }
 
 // ── Price fetchers ─────────────────────────────────────────────────────────────
@@ -149,7 +245,7 @@ async function fetchKalshiPrice(
   apiKey?: string
 ): Promise<{ price: number; title: string }> {
   const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${marketTicker.toUpperCase()}`;
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetry(url, {
     headers: {
       accept: 'application/json',
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
@@ -170,7 +266,7 @@ async function fetchPolymarketPrice(
   outcomeIndex: number
 ): Promise<{ price: number; title: string; outcomeLabel: string }> {
   const url = `https://gamma-api.polymarket.com/markets?slug=${encodeURIComponent(marketSlug)}&limit=1`;
-  const resp = await fetch(url, {
+  const resp = await fetchWithRetry(url, {
     headers: { accept: 'application/json' },
     signal: AbortSignal.timeout(8000),
   });
@@ -305,67 +401,18 @@ export async function evaluateAndNotify(
     }
 
     for (const vars of connectedTriggeredVars) {
-      try {
-        if (node.type === 'discord') {
-          const { webhookUrl, messageTemplate } = node.config;
-          if (!webhookUrl) throw new Error('Webhook URL not configured');
-          await sendDiscord(webhookUrl, fillTemplate(messageTemplate ?? '{{market}} hit {{price}}', vars));
-          results.push({ nodeId: node.id, type: 'discord', status: 'ok', message: `Message sent to Discord (${vars.platform}: ${vars.market})` });
-        }
-
-        if (node.type === 'email') {
-          const { toEmail, subject, bodyTemplate } = node.config;
-          if (!toEmail) throw new Error('Recipient email not configured');
-          await sendEmail(
-            toEmail,
-            fillTemplate(subject ?? 'MarketPing Alert', vars),
-            fillTemplate(bodyTemplate ?? '{{market}}: {{price}}', vars)
-          );
-          results.push({ nodeId: node.id, type: 'email', status: 'ok', message: `Email sent to ${toEmail} (${vars.platform}: ${vars.market})` });
-        }
-
-        if (node.type === 'sms') {
-          const { toPhone, messageTemplate, smsConsent } = node.config;
-          if (!toPhone) throw new Error('Phone number not configured');
-          if (smsConsent !== true) throw new Error('SMS consent has not been confirmed');
-          await sendSms(toPhone, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
-          results.push({ nodeId: node.id, type: 'sms', status: 'ok', message: `SMS sent to ${toPhone} (${vars.platform}: ${vars.market})` });
-        }
-
-        if (node.type === 'webhook') {
-          const { webhookUrl, secret, messageTemplate } = node.config;
-          if (!webhookUrl) throw new Error('Webhook URL not configured');
-          await sendWebhook(
-            webhookUrl,
-            secret ?? '',
-            fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars),
-            vars
-          );
-          results.push({ nodeId: node.id, type: 'webhook', status: 'ok', message: `Webhook delivered (${vars.platform}: ${vars.market})` });
-        }
-
-        if (node.type === 'telegram') {
-          const { chatId, chatSignature, messageTemplate } = node.config;
-          if (!chatId) throw new Error('Telegram chat ID not configured');
-          assertTelegramChatSignature(chatId, chatSignature ?? '');
-          await sendTelegramMessage(chatId, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
-          results.push({ nodeId: node.id, type: 'telegram', status: 'ok', message: `Telegram message sent (${vars.platform}: ${vars.market})` });
-        }
-
-        if (node.type === 'slack') {
-          const { webhookUrl, messageTemplate } = node.config;
-          if (!webhookUrl) throw new Error('Slack webhook URL not configured');
-          await sendSlack(webhookUrl, fillTemplate(messageTemplate ?? '{{market}}: {{price}}', vars));
-          results.push({ nodeId: node.id, type: 'slack', status: 'ok', message: `Slack message sent (${vars.platform}: ${vars.market})` });
-        }
-      } catch (err: any) {
-        results.push({ nodeId: node.id, type: node.type as NodeType, status: 'error', message: err.message });
-      }
+      const actionResult = await sendActionNotification(node, vars);
+      results.push(actionResult.status === 'ok'
+        ? {
+            ...actionResult,
+            message: `${actionResult.message.replace(/^Test /, '')} (${vars.platform}: ${vars.market})`,
+          }
+        : actionResult);
     }
   }
 
   // ── Step 3: Log the run to Supabase (automated runs only) ──────────────────
-  if (supabase && triggeredBy !== 'manual') {
+  if (supabase) {
     const status = results.every(r => r.status !== 'error') ? 'success' : 'error';
     await supabase.from('workflow_runs').insert({
       workflow_id: workflow.id,
@@ -404,28 +451,14 @@ async function resolveDedup(
   if (triggeredBy === 'manual') return inZone;
   if (!supabase) return inZone;
 
-  const { data: state } = await supabase
-    .from('workflow_market_states')
-    .select('threshold_triggered')
-    .eq('workflow_id', workflowId)
-    .eq('node_id', nodeId)
-    .single();
-
-  const alreadyTriggered = state?.threshold_triggered ?? false;
-  const shouldNotify = inZone && !alreadyTriggered;
-  const shouldReset  = !inZone && alreadyTriggered;
-
-  // Upsert updated state
-  await supabase.from('workflow_market_states').upsert({
-    workflow_id: workflowId,
-    node_id: nodeId,
-    platform,
-    market_key: marketKey,
-    last_price: price,
-    last_checked_at: new Date().toISOString(),
-    ...(shouldNotify ? { threshold_triggered: true, last_triggered_at: new Date().toISOString() } : {}),
-    ...(shouldReset  ? { threshold_triggered: false } : {}),
-  }, { onConflict: 'workflow_id,node_id' });
-
-  return shouldNotify;
+  const { data, error } = await supabase.rpc('claim_market_threshold', {
+    p_workflow_id: workflowId,
+    p_node_id: nodeId,
+    p_platform: platform,
+    p_market_key: marketKey,
+    p_price: price,
+    p_in_zone: inZone,
+  });
+  if (error) throw new Error(`Could not claim threshold: ${error.message}`);
+  return data === true;
 }

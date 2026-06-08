@@ -17,6 +17,7 @@ const isSubscribedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/workflow/(.*)',
   '/api/workflows(.*)',
+  '/api/actions(.*)',
   '/api/kalshi(.*)',
   '/api/polymarket(.*)',
   '/api/telegram/connect',

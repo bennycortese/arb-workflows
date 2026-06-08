@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notify = notify;
 const crypto_1 = require("crypto");
 const template_1 = require("./template");
+const retry_1 = require("./retry");
 async function notify(workflow, sourceNode, price, supabase) {
     const vars = notificationVars(sourceNode, price);
     const actions = connectedActions(workflow, sourceNode.id);
@@ -118,7 +119,7 @@ function ok(action, message) {
     };
 }
 async function sendDiscord(webhookUrl, content) {
-    const response = await fetch(webhookUrl, {
+    const response = await (0, retry_1.fetchWithRetry)(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
@@ -130,7 +131,7 @@ async function sendEmail(to, subject, body) {
     const apiKey = process.env.AGENT_MAIL_API_KEY;
     if (!apiKey)
         throw new Error('AGENT_MAIL_API_KEY not set');
-    const response = await fetch('https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send', {
+    const response = await (0, retry_1.fetchWithRetry)('https://api.agentmail.to/v0/inboxes/marketping@agentmail.to/messages/send', {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -153,7 +154,7 @@ async function sendSms(to, body) {
         throw new Error('Twilio env vars not set');
     }
     const payload = new URLSearchParams({ To: to, From: from, Body: body });
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+    const response = await (0, retry_1.fetchWithRetry)(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
         method: 'POST',
         headers: {
             Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
@@ -189,7 +190,7 @@ function validatePublicHttpsUrl(rawUrl) {
 }
 async function sendWebhook(webhookUrl, secret, message, vars) {
     const url = validatePublicHttpsUrl(webhookUrl);
-    const response = await fetch(url, {
+    const response = await (0, retry_1.fetchWithRetry)(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -216,7 +217,7 @@ async function sendTelegram(chatId, text) {
         throw new Error('TELEGRAM_BOT_TOKEN not set');
     if (!/^\d+:[A-Za-z0-9_-]+$/.test(botToken))
         throw new Error('Invalid Telegram bot token');
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const response = await (0, retry_1.fetchWithRetry)(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
@@ -238,7 +239,7 @@ async function sendSlack(webhookUrl, text) {
     const url = validatePublicHttpsUrl(webhookUrl);
     if (url.hostname !== 'hooks.slack.com')
         throw new Error('Invalid Slack webhook URL');
-    const response = await fetch(url, {
+    const response = await (0, retry_1.fetchWithRetry)(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),

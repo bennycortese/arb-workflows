@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { ActionTestButton } from './shared/ActionTestButton';
 
 interface Props {
   config: SlackConfig;
@@ -59,6 +60,7 @@ export function SlackNodeConfig({ config, onChange }: Props) {
           Create an incoming webhook in your Slack app and choose the destination channel.
         </p>
       </Card>
+      <ActionTestButton type="slack" config={config} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { fetchWithRetry } from './retry';
 
 const TELEGRAM_API = 'https://api.telegram.org';
 
@@ -37,7 +38,7 @@ export async function telegramApi<T>(
   method: string,
   payload?: Record<string, unknown>
 ): Promise<T> {
-  const response = await fetch(`${TELEGRAM_API}/bot${getTelegramBotToken()}/${method}`, {
+  const response = await fetchWithRetry(`${TELEGRAM_API}/bot${getTelegramBotToken()}/${method}`, {
     method: payload ? 'POST' : 'GET',
     headers: payload ? { 'Content-Type': 'application/json' } : undefined,
     body: payload ? JSON.stringify(payload) : undefined,

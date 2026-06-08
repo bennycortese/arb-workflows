@@ -31,9 +31,7 @@ function makeWorkflow(priceThreshold = '0.45', direction = 'above', enabled = tr
 
 /**
  * Builds a minimal Supabase mock whose state is shared via a mutable closure.
- * When processUpdate calls upsert({ threshold_triggered: ... }), the closure
- * is updated so subsequent state reads reflect the new value — exactly how the
- * real Supabase table works across consecutive polls.
+ * The rpc method models claim_market_threshold's atomic crossing claim.
  */
 function makeSupabase(workflow: any) {
   // null = no row yet (first ever poll for this workflow+node)
@@ -47,6 +45,13 @@ function makeSupabase(workflow: any) {
   });
 
   const supabase = {
+    rpc: vi.fn(async (_name: string, params: Record<string, any>) => {
+      const inZone = params.p_in_zone === true;
+      const wasTriggered = dbState?.threshold_triggered ?? false;
+      const claimed = inZone && !wasTriggered;
+      dbState = { threshold_triggered: inZone };
+      return { data: claimed, error: null };
+    }),
     from: (table: string) => {
       if (table === 'workflows') {
         return {

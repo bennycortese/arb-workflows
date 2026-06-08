@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { ActionTestButton } from './shared/ActionTestButton';
 
 interface Props {
   config: WebhookConfig;
@@ -71,6 +72,7 @@ export function WebhookNodeConfig({ config, onChange }: Props) {
           threshold, direction, and URL.
         </p>
       </Card>
+      <ActionTestButton type="webhook" config={config} />
     </div>
   );
 }
