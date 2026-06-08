@@ -15,7 +15,7 @@ function Navbar() {
   const { isSignedIn } = useUser();
   const router = useRouter();
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] bg-background/80 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-background/95">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
@@ -53,10 +53,6 @@ function Hero() {
       {/* Grid background */}
       <div className="absolute inset-0 bg-grid-lines" />
       <div className="absolute inset-0 bg-radial-fade" />
-      {/* Glow orbs */}
-      <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
-      <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-blue-500/5 rounded-full blur-3xl" />
-
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 badge-teal text-xs px-3 py-1.5 rounded-full mb-8 font-semibold tracking-wide">
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse-dot" />
@@ -249,7 +245,7 @@ const NODE_TYPES = [
 
 function NodesSection() {
   return (
-    <section id="nodes" className="section-border py-24 px-6">
+    <section id="nodes" className="landing-deferred section-border py-24 px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <div className="badge-teal inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-semibold tracking-wide mb-4">
@@ -305,7 +301,7 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="section-border py-24 px-6">
+    <section id="how-it-works" className="landing-deferred section-border py-24 px-6">
       <div className="max-w-[1200px] mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -356,7 +352,7 @@ const FAQS = [
 
 function FAQSection() {
   return (
-    <section className="section-border px-6 py-24">
+    <section className="landing-deferred section-border px-6 py-24">
       <div className="mx-auto max-w-3xl">
         <div className="mb-12 text-center">
           <div className="badge-teal mb-4 inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
@@ -395,7 +391,7 @@ function CTA() {
   const { isSignedIn } = useUser();
   const router = useRouter();
   return (
-    <section className="section-border py-24 px-6">
+    <section className="landing-deferred section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
           {landingCopy.ctaSectionTitle}
