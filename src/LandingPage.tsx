@@ -389,7 +389,11 @@ function Footer() {
           </div>
           <span className="text-sm text-white/70">{navCopy.brand}</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-white/65">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/65">
+          <a href="/prediction-market-alerts" className="hover:text-white">Market alerts</a>
+          <a href="/kalshi-alerts" className="hover:text-white">Kalshi</a>
+          <a href="/polymarket-alerts" className="hover:text-white">Polymarket</a>
+          <a href="/telegram-prediction-market-alerts" className="hover:text-white">Telegram alerts</a>
           <a href="/privacy" className="hover:text-white">Privacy</a>
           <a href="/terms" className="hover:text-white">Terms</a>
           <a href="mailto:bennycortese@gmail.com" className="hover:text-white">Support</a>
