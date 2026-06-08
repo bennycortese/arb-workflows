@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | MarketPing',
+  title: 'Terms of Service',
+  description: 'Terms for using MarketPing prediction market monitoring and notification services.',
+  alternates: { canonical: '/terms' },
 };
 
 export default function TermsPage() {

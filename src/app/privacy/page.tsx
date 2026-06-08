@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | MarketPing',
+  title: 'Privacy Policy',
+  description: 'How MarketPing handles account, workflow, payment, and alert destination information.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPage() {

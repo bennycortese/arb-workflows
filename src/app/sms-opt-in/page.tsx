@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'SMS Opt-In | MarketPing',
+  title: 'SMS Alert Opt-In',
+  description: 'How MarketPing users consent to receive automated prediction market SMS alerts.',
+  alternates: { canonical: '/sms-opt-in' },
 };
 
 export default function SmsOptInPage() {

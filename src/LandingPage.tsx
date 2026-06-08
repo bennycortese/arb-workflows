@@ -99,7 +99,7 @@ function Hero() {
           <div className="flex items-center justify-center gap-4 flex-wrap">
             {[
               { label: 'Fed rate cut by June', price: '58¢', change: '+4', color: 'text-emerald-400' },
-              { label: 'US recession in 2025', price: '35¢', change: '+2', color: 'text-emerald-400' },
+              { label: 'US recession in 2026', price: '35¢', change: '+2', color: 'text-emerald-400' },
               { label: 'S&P 500 above 5,500 EOY', price: '44¢', change: '-3', color: 'text-red-400' },
             ].map(m => (
               <div key={m.label} className="glass-card px-4 py-2.5 rounded-lg flex items-center gap-3">
@@ -131,8 +131,8 @@ const NODE_TYPES = [
         <path d="m7 16 4-4 4 4 4-4" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    description: 'Read YES/NO prices from any Kalshi market. Set a price threshold and direction to trigger downstream actions.',
-    features: ['Real-time market prices', 'Price threshold triggers', 'Multi-market support'],
+    description: 'Create Kalshi price alerts for any market. Monitor the YES price and trigger notifications when it moves above or below your threshold.',
+    features: ['Kalshi market monitoring', 'Price threshold alerts', 'Multi-market support'],
   },
   {
     id: 'polymarket',
@@ -150,8 +150,8 @@ const NODE_TYPES = [
         <path d="M3 12h18" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
       </svg>
     ),
-    description: 'Monitor any Polymarket outcome by market slug. No API key required — uses the public CLOB API.',
-    features: ['Public API, no key needed', 'Outcome-level tracking', 'Volume & price data'],
+    description: 'Create Polymarket price alerts for individual outcomes. Search events, choose an outcome, and monitor it without an API key.',
+    features: ['Polymarket event search', 'Outcome-level alerts', 'No API key required'],
   },
   {
     id: 'discord',
@@ -335,6 +335,62 @@ function HowItWorks() {
   );
 }
 
+// ── FAQ ───────────────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    question: 'Can I create price alerts for Kalshi markets?',
+    answer: 'Yes. Search for a Kalshi event or paste its URL, choose a market, and set an above, below, or any-price threshold. MarketPing monitors the market and sends the alert through your selected action.',
+  },
+  {
+    question: 'Can I create Polymarket alerts?',
+    answer: 'Yes. MarketPing lets you search Polymarket events, select an outcome, and receive an alert when its price crosses your threshold.',
+  },
+  {
+    question: 'Where can prediction market alerts be sent?',
+    answer: 'MarketPing supports Discord, Telegram, Slack, email, SMS, and generic HTTPS webhooks for tools such as Zapier, Make, and n8n.',
+  },
+  {
+    question: 'Do I need to write code or use an API?',
+    answer: 'No. The visual workflow builder handles market monitoring, threshold logic, retries, and duplicate-alert prevention without code.',
+  },
+];
+
+function FAQSection() {
+  return (
+    <section className="section-border px-6 py-24">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-12 text-center">
+          <div className="badge-teal mb-4 inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
+            Prediction market alert FAQ
+          </div>
+          <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+            Kalshi and Polymarket alert questions
+          </h2>
+          <p className="mx-auto max-w-xl text-white/60">
+            How MarketPing monitors prediction market prices and routes alerts.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {FAQS.map(item => (
+            <details
+              key={item.question}
+              className="group rounded-xl border border-white/[0.08] bg-white/[0.025] p-5"
+            >
+              <summary className="cursor-pointer list-none font-semibold text-white">
+                <span className="flex items-center justify-between gap-4">
+                  {item.question}
+                  <span className="text-cyan-400 transition-transform group-open:rotate-45">+</span>
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-white/60">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── CTA ───────────────────────────────────────────────────────────────────────
 function CTA() {
   const { isSignedIn } = useUser();
@@ -395,6 +451,7 @@ export default function LandingPage() {
       <Hero />
       <NodesSection />
       <HowItWorks />
+      <FAQSection />
       <CTA />
       <Footer />
     </div>
