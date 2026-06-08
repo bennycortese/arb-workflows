@@ -25,8 +25,8 @@ function Navbar() {
           <span className="badge-teal text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide ml-1" title="Early access — features and pricing may change">{t('beta')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <a href="#nodes" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
-          <a href="#how-it-works" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">{t('howItWorks')}</a>
+          <a href="#nodes" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{t('nodes')}</a>
+          <a href="#how-it-works" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{t('howItWorks')}</a>
           {isSignedIn ? (
             <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
               {t('dashboard')}
@@ -72,7 +72,7 @@ function Hero() {
           )}
         </h1>
 
-        <p className="text-lg md:text-xl text-white/50 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
           {t('heroSubtitle')}
         </p>
 
@@ -95,7 +95,7 @@ function Hero() {
 
         {/* Mini market ticker */}
         <div className="mt-16 flex flex-col items-center gap-3">
-          <span className="text-[10px] uppercase tracking-widest text-white/20 font-semibold">Example markets</span>
+          <span className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">Example markets</span>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             {[
               { label: 'Fed rate cut by June', price: '58¢', change: '+4', color: 'text-emerald-400' },
@@ -103,7 +103,7 @@ function Hero() {
               { label: 'S&P 500 above 5,500 EOY', price: '44¢', change: '-3', color: 'text-red-400' },
             ].map(m => (
               <div key={m.label} className="glass-card px-4 py-2.5 rounded-lg flex items-center gap-3">
-                <span className="text-xs text-white/40">{m.label}</span>
+                <span className="text-xs text-white/70">{m.label}</span>
                 <span className="font-mono font-semibold text-sm text-white">{m.price}</span>
                 <span className={`font-mono text-xs ${m.color}`}>{m.change}</span>
               </div>
@@ -258,7 +258,7 @@ function NodesSection() {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             {t('nodesSectionTitle')}
           </h2>
-          <p className="text-white/50 max-w-lg mx-auto">
+          <p className="text-white/70 max-w-lg mx-auto">
             {t('nodesSectionSubtitle')}
           </p>
         </div>
@@ -277,10 +277,10 @@ function NodesSection() {
                       {node.role.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-sm text-white/50 mb-3 leading-relaxed">{node.description}</p>
+                  <p className="text-sm text-white/70 mb-3 leading-relaxed">{node.description}</p>
                   <ul className="space-y-1">
                     {node.features.map(f => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-white/40">
+                      <li key={f} className="flex items-center gap-2 text-xs text-white/70">
                         <span className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: node.color }} />
                         {f}
                       </li>
@@ -312,7 +312,7 @@ function HowItWorks() {
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             {t('howItWorksTitle')}
           </h2>
-          <p className="text-white/50 max-w-lg mx-auto">
+          <p className="text-white/70 max-w-lg mx-auto">
             {t('howItWorksSubtitle')}
           </p>
         </div>
@@ -323,9 +323,9 @@ function HowItWorks() {
                 <div className="hidden md:block absolute top-5 left-[calc(100%+12px)] right-0 h-px bg-white/[0.06] z-10" style={{ width: 'calc(100% - 32px)', left: 'calc(100% + 16px)' }} />
               )}
               <div className="glass-card rounded-xl p-6">
-                <div className={`text-4xl font-bold mb-4 tabular-nums ${step.color} opacity-40`}>{step.n}</div>
+                <div className={`text-4xl font-bold mb-4 tabular-nums ${step.color} opacity-70`}>{step.n}</div>
                 <h3 className="font-semibold text-white mb-2">{step.title}</h3>
-                <p className="text-sm text-white/50 leading-relaxed">{step.body}</p>
+                <p className="text-sm text-white/70 leading-relaxed">{step.body}</p>
               </div>
             </div>
           ))}
@@ -366,7 +366,7 @@ function FAQSection() {
           <h2 className="mb-4 text-3xl font-bold text-white md:text-4xl">
             Kalshi and Polymarket alert questions
           </h2>
-          <p className="mx-auto max-w-xl text-white/60">
+          <p className="mx-auto max-w-xl text-white/70">
             How MarketPing monitors prediction market prices and routes alerts.
           </p>
         </div>
@@ -382,7 +382,7 @@ function FAQSection() {
                   <span className="text-cyan-400 transition-transform group-open:rotate-45">+</span>
                 </span>
               </summary>
-              <p className="mt-3 text-sm leading-relaxed text-white/60">{item.answer}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white/70">{item.answer}</p>
             </details>
           ))}
         </div>
@@ -402,7 +402,7 @@ function CTA() {
         <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
           {t('ctaSectionTitle')}
         </h2>
-        <p className="text-white/50 mb-8">{t('ctaSectionSubtitle')}</p>
+        <p className="text-white/70 mb-8">{t('ctaSectionSubtitle')}</p>
         {isSignedIn ? (
           <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
             {t('openDashboard')}
@@ -430,14 +430,14 @@ function Footer() {
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#06b6d4"/>
             </svg>
           </div>
-          <span className="text-sm text-white/40">{tn('brand')}</span>
+          <span className="text-sm text-white/70">{tn('brand')}</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-white/30">
-          <a href="/privacy" className="hover:text-white/60">Privacy</a>
-          <a href="/terms" className="hover:text-white/60">Terms</a>
-          <a href="mailto:bennycortese@gmail.com" className="hover:text-white/60">Support</a>
+        <div className="flex items-center gap-4 text-xs text-white/65">
+          <a href="/privacy" className="hover:text-white">Privacy</a>
+          <a href="/terms" className="hover:text-white">Terms</a>
+          <a href="mailto:bennycortese@gmail.com" className="hover:text-white">Support</a>
         </div>
-        <p className="text-xs text-white/25">{t('footerDisclaimer')}</p>
+        <p className="text-xs text-white/60">{t('footerDisclaimer')}</p>
       </div>
     </footer>
   );
