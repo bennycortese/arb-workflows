@@ -94,6 +94,11 @@ export default function PredictionMarketAlertsPage() {
           label: 'Polymarket alerts',
           description: 'Monitor the price of a selected outcome within a Polymarket event.',
         },
+        {
+          href: '/telegram-prediction-market-alerts',
+          label: 'Telegram market alerts',
+          description: 'Connect a Telegram chat for immediate market threshold notifications.',
+        },
       ]}
     />
   );

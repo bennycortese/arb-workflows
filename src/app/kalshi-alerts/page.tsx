@@ -83,6 +83,23 @@ export default function KalshiAlertsPage() {
       canonicalPath="/kalshi-alerts"
       sections={sections}
       faqs={faqs}
+      relatedGuides={[
+        {
+          href: '/prediction-market-alerts',
+          label: 'Prediction market alerts',
+          description: 'Compare sources and send market events to any supported destination.',
+        },
+        {
+          href: '/polymarket-alerts',
+          label: 'Polymarket alerts',
+          description: 'Monitor a selected outcome within a Polymarket event.',
+        },
+        {
+          href: '/telegram-prediction-market-alerts',
+          label: 'Telegram market alerts',
+          description: 'Deliver Kalshi and Polymarket threshold alerts to Telegram.',
+        },
+      ]}
     />
   );
 }

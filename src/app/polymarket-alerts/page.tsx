@@ -89,6 +89,16 @@ export default function PolymarketAlertsPage() {
           label: 'Kalshi alerts',
           description: 'Monitor Kalshi YES prices with above and below threshold conditions.',
         },
+        {
+          href: '/prediction-market-alerts',
+          label: 'Prediction market alerts',
+          description: 'Explore cross-platform market monitoring and notification workflows.',
+        },
+        {
+          href: '/telegram-prediction-market-alerts',
+          label: 'Telegram market alerts',
+          description: 'Send Polymarket outcome alerts directly to a Telegram chat.',
+        },
       ]}
     />
   );
