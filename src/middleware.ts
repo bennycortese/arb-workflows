@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/kalshi-alerts',
   '/polymarket-alerts',
+  '/prediction-market-alerts',
   '/pricing',
   '/privacy',
   '/sms-opt-in',
