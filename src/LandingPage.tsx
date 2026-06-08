@@ -1,19 +1,19 @@
-'use client';
-
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
-import { Button } from './@/components/ui/button';
 import { Card } from './@/components/ui/card';
 import messages from '../messages/en.json';
 
 const navCopy = messages.nav;
 const landingCopy = messages.landing;
+const heroAccent = 'automated.';
+const heroTitle = landingCopy.heroTitle.replace(heroAccent, '');
+const primaryButtonClass =
+  'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg bg-cyan-500 px-6 text-base font-semibold text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_28px_rgba(6,182,212,0.5)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+const smallPrimaryButtonClass =
+  'inline-flex h-8 items-center justify-center whitespace-nowrap rounded-lg bg-cyan-500 px-3 text-xs font-semibold text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_28px_rgba(6,182,212,0.5)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
+const outlineButtonClass =
+  'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg border border-white/[0.1] px-6 text-base font-medium text-white/70 transition-all hover:border-white/[0.15] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 function Navbar() {
-  const { isSignedIn } = useUser();
-  const router = useRouter();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-background/95">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -29,15 +29,10 @@ function Navbar() {
         <div className="flex items-center gap-2">
           <a href="#nodes" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.nodes}</a>
           <a href="#how-it-works" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.howItWorks}</a>
-          {isSignedIn ? (
-            <Button variant="primary" size="sm" onClick={() => router.push('/dashboard')}>
-              {navCopy.dashboard}
-            </Button>
-          ) : (
-            <Button variant="primary" size="sm" onClick={() => router.push('/pricing')}>
-              {navCopy.getStarted}
-            </Button>
-          )}
+          <a href="/dashboard" className="hidden px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white sm:inline-flex">
+            {navCopy.dashboard}
+          </a>
+          <a href="/pricing" className={smallPrimaryButtonClass}>{navCopy.getStarted}</a>
         </div>
       </div>
     </nav>
@@ -46,8 +41,6 @@ function Navbar() {
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
-  const { isSignedIn } = useUser();
-  const router = useRouter();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
       {/* Grid background */}
@@ -60,13 +53,7 @@ function Hero() {
         </div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05]">
-          {landingCopy.heroTitle.split('prediction markets').map((part, i) =>
-            i === 0 ? (
-              <React.Fragment key={i}>
-                {part}<span className="gradient-text">prediction markets</span>
-              </React.Fragment>
-            ) : part
-          )}
+          {heroTitle}<span className="gradient-text">{heroAccent}</span>
         </h1>
 
         <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -74,20 +61,8 @@ function Hero() {
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          {isSignedIn ? (
-            <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-              {landingCopy.openDashboard}
-            </Button>
-          ) : (
-            <>
-              <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
-                {landingCopy.ctaPrimary}
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <a href="#how-it-works">{landingCopy.ctaSecondary}</a>
-              </Button>
-            </>
-          )}
+          <a href="/pricing" className={primaryButtonClass}>{landingCopy.ctaPrimary}</a>
+          <a href="#how-it-works" className={outlineButtonClass}>{landingCopy.ctaSecondary}</a>
         </div>
 
         {/* Mini market ticker */}
@@ -388,8 +363,6 @@ function FAQSection() {
 
 // ── CTA ───────────────────────────────────────────────────────────────────────
 function CTA() {
-  const { isSignedIn } = useUser();
-  const router = useRouter();
   return (
     <section className="landing-deferred section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
@@ -397,15 +370,7 @@ function CTA() {
           {landingCopy.ctaSectionTitle}
         </h2>
         <p className="text-white/70 mb-8">{landingCopy.ctaSectionSubtitle}</p>
-        {isSignedIn ? (
-          <Button variant="primary" size="lg" onClick={() => router.push('/dashboard')}>
-            {landingCopy.openDashboard}
-          </Button>
-        ) : (
-          <Button variant="primary" size="lg" onClick={() => router.push('/pricing')}>
-            {landingCopy.ctaFree}
-          </Button>
-        )}
+        <a href="/pricing" className={primaryButtonClass}>{landingCopy.ctaFree}</a>
       </div>
     </section>
   );
