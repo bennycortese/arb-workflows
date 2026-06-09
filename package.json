@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "npm --prefix worker test",
+    "test:nodes": "npm --prefix worker test -- app-nodes.test.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.3.0",
