@@ -32,8 +32,8 @@ jobs:
       - name: Install worker dependencies
         run: npm ci --prefix worker
 
-      - name: Run node and worker tests
-        run: npm test
+      - name: Run tests with coverage thresholds
+        run: npm run test:coverage
 
       - name: Build application
         run: npm run build

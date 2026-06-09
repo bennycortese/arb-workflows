@@ -5,5 +5,7 @@
 /worker/node_modules/
 .env
 /.next/
+/coverage/
+/worker/coverage/
 .vercel
 .env*

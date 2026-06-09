@@ -141,6 +141,163 @@ describe('source node contracts', () => {
   });
 });
 
+describe('workflow evaluation contracts', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('routes a triggered source only to its connected action and logs the run', async () => {
+    const fetchMock = vi.fn(async (input: string | URL) => {
+      const url = input.toString();
+      if (url.includes('api.elections.kalshi.com')) {
+        return okJson({
+          market: { yes_bid_dollars: '0.61', title: 'Rate decision' },
+        });
+      }
+      if (url.includes('discord.com/api/webhooks')) {
+        return new Response(null, { status: 204 });
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+    const supabase = {
+      rpc,
+      from: vi.fn((table: string) => {
+        if (table === 'workflow_runs') return { insert };
+        if (table === 'workflows') return { update };
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+
+    const results = await evaluateAndNotify({
+      id: 'wf-routed',
+      nodes: [
+        node('kalshi', {
+          marketTicker: 'KX-RATE',
+          priceThreshold: '0.60',
+          direction: 'above',
+        }, 'kalshi-1'),
+        node('discord', {
+          webhookUrl: 'https://discord.com/api/webhooks/123/secret',
+          messageTemplate: '{{market}} at {{price}}',
+        }, 'discord-1'),
+        node('slack', {
+          webhookUrl: 'https://hooks.slack.com/services/T/B/S',
+          messageTemplate: '{{market}} at {{price}}',
+        }, 'slack-1'),
+      ],
+      edges: [{ source: 'kalshi-1', target: 'discord-1' }],
+    }, 'cron', supabase as never);
+
+    expect(rpc).toHaveBeenCalledWith('claim_market_threshold', expect.objectContaining({
+      p_workflow_id: 'wf-routed',
+      p_node_id: 'kalshi-1',
+      p_in_zone: true,
+    }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(results).toEqual([
+      expect.objectContaining({ nodeId: 'kalshi-1', status: 'ok' }),
+      expect.objectContaining({ nodeId: 'discord-1', status: 'ok' }),
+      expect.objectContaining({ nodeId: 'slack-1', status: 'skip' }),
+    ]);
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      workflow_id: 'wf-routed',
+      status: 'success',
+      triggered_by: 'cron',
+    }));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      last_status: 'success',
+    }));
+    expect(eq).toHaveBeenCalledWith('id', 'wf-routed');
+  });
+
+  it('does not deliver an automated alert when the threshold claim is already held', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okJson({
+      market: { yes_bid_dollars: '0.70', title: 'Rate decision' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
+      from: vi.fn((table: string) => (
+        table === 'workflow_runs' ? { insert } : { update }
+      )),
+    };
+
+    const results = await evaluateAndNotify({
+      id: 'wf-dedup',
+      nodes: [
+        node('kalshi', {
+          marketTicker: 'KX-RATE',
+          priceThreshold: '0.60',
+          direction: 'above',
+        }, 'kalshi-1'),
+        node('discord', {
+          webhookUrl: 'https://discord.com/api/webhooks/123/secret',
+          messageTemplate: '',
+        }, 'discord-1'),
+      ],
+    }, 'worker', supabase as never);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(results).toEqual([
+      expect.objectContaining({
+        nodeId: 'kalshi-1',
+        status: 'skip',
+        message: expect.stringContaining('already notified'),
+      }),
+      expect.objectContaining({
+        nodeId: 'discord-1',
+        status: 'skip',
+      }),
+    ]);
+  });
+
+  it('surfaces an atomic threshold claim failure as a source error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({
+      market: { yes_bid_dollars: '0.70', title: 'Rate decision' },
+    })));
+
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      rpc: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'database unavailable' },
+      }),
+      from: vi.fn((table: string) => (
+        table === 'workflow_runs' ? { insert } : { update }
+      )),
+    };
+
+    const results = await evaluateAndNotify({
+      id: 'wf-claim-error',
+      nodes: [node('kalshi', {
+        marketTicker: 'KX-RATE',
+        priceThreshold: '0.60',
+        direction: 'above',
+      }, 'kalshi-1')],
+    }, 'cron', supabase as never);
+
+    expect(results[0]).toEqual(expect.objectContaining({
+      status: 'error',
+      message: 'Could not claim threshold: database unavailable',
+    }));
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'error',
+    }));
+  });
+});
+
 describe('action node contracts', () => {
   beforeEach(() => {
     process.env.AGENT_MAIL_API_KEY = 'agent-test-key';
