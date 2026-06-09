@@ -26,9 +26,16 @@ export async function POST(request: NextRequest) {
   // Look up existing customer or create one
   const { data: existing } = await supabase
     .from('subscriptions')
-    .select('stripe_customer_id')
+    .select('stripe_customer_id, status')
     .eq('user_id', userId)
     .single();
+
+  if (existing?.status === 'active') {
+    return NextResponse.json(
+      { error: 'Your subscription is already active.', code: 'already_subscribed' },
+      { status: 409 },
+    );
+  }
 
   let customerId = existing?.stripe_customer_id;
   if (!customerId) {
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest) {
     line_items: [{ price: priceId, quantity: 1 }],
     metadata: { userId },
     success_url: `${origin}/pricing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/pricing`,
+    cancel_url: `${origin}/pricing?canceled=true`,
   });
 
   return NextResponse.json({ url: session.url });

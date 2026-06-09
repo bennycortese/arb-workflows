@@ -14,6 +14,8 @@ export default defineConfig({
         'src/lib/workflowGraph.ts',
         'src/lib/thresholdEval.ts',
         'src/app/api/actions/test/route.ts',
+        'src/app/api/subscription/status/route.ts',
+        'src/app/api/stripe/checkout/route.ts',
         'src/app/api/workflows/run/route.ts',
         'src/app/api/workflows/save/route.ts',
         'worker/template.ts',

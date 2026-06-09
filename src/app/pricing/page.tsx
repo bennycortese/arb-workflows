@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useUser, SignInButton, useAuth } from '@clerk/nextjs';
+import { useUser, SignInButton, useAuth, UserButton } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../../@/components/ui/button';
 
@@ -14,13 +14,15 @@ function CheckIcon() {
 }
 
 const FEATURES = [
-  'Live Kalshi & Polymarket price feeds',
+  'Automated Kalshi & Polymarket monitoring',
   'Unlimited workflows',
-  'Discord & Email alert actions',
-  'Price threshold automation',
-  'Real-time notifications',
-  'Priority support',
+  'Telegram, Discord, Slack, email, SMS & webhooks',
+  'Reliable retries and duplicate-alert prevention',
+  'Test alerts and workflow run history',
+  'Cancel anytime',
 ];
+
+type SubscriptionState = 'loading' | 'active' | 'inactive';
 
 function CanceledBanner() {
   const searchParams = useSearchParams();
@@ -144,21 +146,54 @@ function CheckoutSuccessBanner() {
 }
 
 export default function PricingPage() {
-  const { isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const { sessionClaims } = useAuth();
   const router = useRouter();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionState, setSubscriptionState] = useState<SubscriptionState>('loading');
 
-  // Redirect already-subscribed users straight to dashboard (skip if post-checkout polling)
   useEffect(() => {
-    const subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed;
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setSubscriptionState('inactive');
+      return;
+    }
+
+    const subscribed =
+      (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
     const checkoutSuccess = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('success') === 'true';
-    if (isSignedIn && subscribed === true && !checkoutSuccess) {
+
+    if (subscribed) {
+      setSubscriptionState('active');
+      if (!checkoutSuccess) router.replace('/dashboard');
+      return;
+    }
+
+    let cancelled = false;
+    fetch('/api/subscription/status')
+      .then(response => response.ok ? response.json() : { active: false })
+      .then(data => {
+        if (cancelled) return;
+        const active = data.active === true;
+        setSubscriptionState(active ? 'active' : 'inactive');
+        if (active && !checkoutSuccess) router.replace('/dashboard');
+      })
+      .catch(() => {
+        if (!cancelled) setSubscriptionState('inactive');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, isSignedIn, sessionClaims, router]);
+
+  useEffect(() => {
+    if (subscriptionState === 'active') {
       router.replace('/dashboard');
     }
-  }, [isSignedIn, sessionClaims, router]);
+  }, [subscriptionState, router]);
 
   async function handleSubscribe() {
     setLoading(true);
@@ -195,11 +230,30 @@ export default function PricingPage() {
             </div>
             <span className="font-semibold text-white text-sm tracking-tight">MarketPing</span>
           </button>
-          {isSignedIn && (
-            <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
-              Dashboard
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {!isLoaded ? (
+              <span className="text-xs text-white/40">Checking account…</span>
+            ) : isSignedIn ? (
+              <>
+                <div className="hidden text-right sm:block">
+                  <p className="text-[10px] uppercase tracking-wide text-cyan-400">Signed in</p>
+                  <p className="max-w-52 truncate text-xs text-white/70">
+                    {user.primaryEmailAddress?.emailAddress ?? user.fullName ?? 'MarketPing account'}
+                  </p>
+                </div>
+                {subscriptionState === 'active' && (
+                  <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+                    Dashboard
+                  </Button>
+                )}
+                <UserButton />
+              </>
+            ) : (
+              <SignInButton mode="modal" fallbackRedirectUrl="/pricing">
+                <Button variant="outline" size="sm">Sign in</Button>
+              </SignInButton>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -219,7 +273,7 @@ export default function PricingPage() {
             <span className="gradient-text">prediction market edge</span>
           </h1>
           <p className="text-white/50 mb-10">
-            No free tier. No trial. Serious traders only.
+            One straightforward plan for automated market monitoring.
           </p>
 
           <Suspense>
@@ -284,7 +338,20 @@ export default function PricingPage() {
               </div>
             )}
 
-            {isSignedIn ? (
+            {!isLoaded || (isSignedIn && subscriptionState === 'loading') ? (
+              <Button variant="primary" size="lg" className="w-full" disabled>
+                Checking your account…
+              </Button>
+            ) : isSignedIn && subscriptionState === 'active' ? (
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push('/dashboard')}
+              >
+                Open dashboard
+              </Button>
+            ) : isSignedIn ? (
               <Button
                 variant="primary"
                 size="lg"
@@ -292,7 +359,7 @@ export default function PricingPage() {
                 onClick={handleSubscribe}
                 disabled={loading}
               >
-                {loading ? 'Redirecting…' : 'Subscribe now'}
+                {loading ? 'Opening secure checkout…' : 'Subscribe now'}
               </Button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/pricing">
@@ -306,6 +373,11 @@ export default function PricingPage() {
           <p className="text-xs text-white/25">
             Secured by Stripe. Cancel anytime from your billing portal.
           </p>
+          {isSignedIn && subscriptionState === 'inactive' && (
+            <p className="mt-3 text-xs text-white/45">
+              Signed in as {user?.primaryEmailAddress?.emailAddress}. Subscribe to unlock the dashboard.
+            </p>
+          )}
         </div>
       </main>
     </div>
