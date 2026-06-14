@@ -195,14 +195,26 @@ describe('POST /api/stripe/checkout', () => {
 
 describe('POST /api/stripe/portal', () => {
   const portalCreate = vi.fn();
+  const configurationList = vi.fn();
+  const configurationCreate = vi.fn();
 
   beforeEach(() => {
     mocks.auth.mockReset();
     mocks.getSupabaseAdmin.mockReset();
     mocks.getStripe.mockReset().mockReturnValue({
-      billingPortal: { sessions: { create: portalCreate } },
+      billingPortal: {
+        configurations: {
+          list: configurationList,
+          create: configurationCreate,
+        },
+        sessions: { create: portalCreate },
+      },
     });
     portalCreate.mockReset();
+    configurationList.mockReset().mockResolvedValue({
+      data: [{ id: 'bpc_existing' }],
+    });
+    configurationCreate.mockReset();
   });
 
   it('rejects signed-out users', async () => {
@@ -250,6 +262,50 @@ describe('POST /api/stripe/portal', () => {
     });
     expect(portalCreate).toHaveBeenCalledWith({
       customer: 'cus_active',
+      configuration: 'bpc_existing',
+      return_url: 'https://www.marketping.ai/dashboard',
+    });
+    expect(configurationList).toHaveBeenCalledWith({
+      active: true,
+      limit: 1,
+    });
+    expect(configurationCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates a portal configuration when Stripe has no active configuration', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const query = subscriptionQuery({
+      stripe_customer_id: 'cus_active',
+      status: 'active',
+    });
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => query),
+    });
+    configurationList.mockResolvedValue({ data: [] });
+    configurationCreate.mockResolvedValue({ id: 'bpc_created' });
+    portalCreate.mockResolvedValue({ url: 'https://billing.stripe.com/session' });
+
+    const response = await createPortal(checkoutRequest() as never);
+
+    expect(response.status).toBe(200);
+    expect(configurationCreate).toHaveBeenCalledWith({
+      name: 'MarketPing subscription management',
+      features: {
+        invoice_history: { enabled: true },
+        payment_method_update: { enabled: true },
+        subscription_cancel: {
+          enabled: true,
+          mode: 'at_period_end',
+          cancellation_reason: {
+            enabled: true,
+            options: ['too_expensive', 'missing_features', 'unused', 'other'],
+          },
+        },
+      },
+    });
+    expect(portalCreate).toHaveBeenCalledWith({
+      customer: 'cus_active',
+      configuration: 'bpc_created',
       return_url: 'https://www.marketping.ai/dashboard',
     });
   });
