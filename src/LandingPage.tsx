@@ -1,4 +1,5 @@
 import { Card } from './@/components/ui/card';
+import { LandingNavAccount, LandingPrimaryCta } from './LandingAuthActions';
 import messages from '../messages/en.json';
 
 const navCopy = messages.nav;
@@ -7,13 +8,11 @@ const heroAccent = 'automated.';
 const heroTitle = landingCopy.heroTitle.replace(heroAccent, '');
 const primaryButtonClass =
   'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg bg-cyan-500 px-6 text-base font-semibold text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_28px_rgba(6,182,212,0.5)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
-const smallPrimaryButtonClass =
-  'inline-flex h-8 items-center justify-center whitespace-nowrap rounded-lg bg-cyan-500 px-3 text-xs font-semibold text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_28px_rgba(6,182,212,0.5)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 const outlineButtonClass =
   'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg border border-white/[0.1] px-6 text-base font-medium text-white/70 transition-all hover:border-white/[0.15] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
-function Navbar() {
+function Navbar({ initialSignedIn }: { initialSignedIn: boolean }) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-background/95">
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -29,10 +28,7 @@ function Navbar() {
         <div className="flex items-center gap-2">
           <a href="#nodes" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.nodes}</a>
           <a href="#how-it-works" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">{navCopy.howItWorks}</a>
-          <a href="/dashboard" className="hidden px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white sm:inline-flex">
-            {navCopy.dashboard}
-          </a>
-          <a href="/pricing" className={smallPrimaryButtonClass}>{navCopy.getStarted}</a>
+          <LandingNavAccount initialSignedIn={initialSignedIn} />
         </div>
       </div>
     </nav>
@@ -40,7 +36,7 @@ function Navbar() {
 }
 
 // ── Hero ─────────────────────────────────────────────────────────────────────
-function Hero() {
+function Hero({ initialSignedIn }: { initialSignedIn: boolean }) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-14">
       {/* Grid background */}
@@ -61,7 +57,7 @@ function Hero() {
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <a href="/pricing" className={primaryButtonClass}>{landingCopy.ctaPrimary}</a>
+          <LandingPrimaryCta initialSignedIn={initialSignedIn} />
           <a href="#how-it-works" className={outlineButtonClass}>{landingCopy.ctaSecondary}</a>
         </div>
 
@@ -362,7 +358,7 @@ function FAQSection() {
 }
 
 // ── CTA ───────────────────────────────────────────────────────────────────────
-function CTA() {
+function CTA({ initialSignedIn }: { initialSignedIn: boolean }) {
   return (
     <section className="landing-deferred section-border py-24 px-6">
       <div className="max-w-2xl mx-auto text-center">
@@ -370,7 +366,7 @@ function CTA() {
           {landingCopy.ctaSectionTitle}
         </h2>
         <p className="text-white/70 mb-8">{landingCopy.ctaSectionSubtitle}</p>
-        <a href="/pricing" className={primaryButtonClass}>{landingCopy.ctaFree}</a>
+        <LandingPrimaryCta initialSignedIn={initialSignedIn} />
       </div>
     </section>
   );
@@ -405,15 +401,15 @@ function Footer() {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-export default function LandingPage() {
+export default function LandingPage({ initialSignedIn = false }: { initialSignedIn?: boolean }) {
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <Hero />
+      <Navbar initialSignedIn={initialSignedIn} />
+      <Hero initialSignedIn={initialSignedIn} />
       <NodesSection />
       <HowItWorks />
       <FAQSection />
-      <CTA />
+      <CTA initialSignedIn={initialSignedIn} />
       <Footer />
     </div>
   );

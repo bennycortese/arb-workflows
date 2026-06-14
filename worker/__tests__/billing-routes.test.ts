@@ -29,6 +29,7 @@ vi.mock('../../src/lib/stripeConfig', () => ({
 
 import { GET as subscriptionStatus } from '../../src/app/api/subscription/status/route';
 import { POST as createCheckout } from '../../src/app/api/stripe/checkout/route';
+import { POST as createPortal } from '../../src/app/api/stripe/portal/route';
 import { FREE_PLAN_LIMITS } from '../../src/lib/planLimits';
 
 function checkoutRequest(billing: 'monthly' | 'yearly' = 'monthly'): Request {
@@ -189,5 +190,86 @@ describe('POST /api/stripe/checkout', () => {
     expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({
       customer: 'cus_new',
     }));
+  });
+});
+
+describe('POST /api/stripe/portal', () => {
+  const portalCreate = vi.fn();
+
+  beforeEach(() => {
+    mocks.auth.mockReset();
+    mocks.getSupabaseAdmin.mockReset();
+    mocks.getStripe.mockReset().mockReturnValue({
+      billingPortal: { sessions: { create: portalCreate } },
+    });
+    portalCreate.mockReset();
+  });
+
+  it('rejects signed-out users', async () => {
+    mocks.auth.mockResolvedValue({ userId: null });
+
+    const response = await createPortal(checkoutRequest() as never);
+
+    expect(response.status).toBe(401);
+    expect(portalCreate).not.toHaveBeenCalled();
+  });
+
+  it('directs Free users to upgrade instead of opening Stripe', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const query = subscriptionQuery(null);
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => query),
+    });
+
+    const response = await createPortal(checkoutRequest() as never);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'Upgrade to Pro before opening subscription management.',
+      code: 'free_plan',
+    });
+    expect(portalCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates a billing portal session for active Pro users', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const query = subscriptionQuery({
+      stripe_customer_id: 'cus_active',
+      status: 'active',
+    });
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => query),
+    });
+    portalCreate.mockResolvedValue({ url: 'https://billing.stripe.com/session' });
+
+    const response = await createPortal(checkoutRequest() as never);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      url: 'https://billing.stripe.com/session',
+    });
+    expect(portalCreate).toHaveBeenCalledWith({
+      customer: 'cus_active',
+      return_url: 'https://www.marketping.ai/dashboard',
+    });
+  });
+
+  it('returns a useful error when Stripe cannot create the portal session', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const query = subscriptionQuery({
+      stripe_customer_id: 'cus_active',
+      status: 'active',
+    });
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => query),
+    });
+    portalCreate.mockRejectedValue(new Error('Stripe unavailable'));
+
+    const response = await createPortal(checkoutRequest() as never);
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({
+      error: 'Billing management is temporarily unavailable. Please try again shortly.',
+    });
   });
 });

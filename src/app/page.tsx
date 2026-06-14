@@ -1,4 +1,5 @@
 import LandingPage from '../LandingPage';
+import { auth } from '@clerk/nextjs/server';
 
 const structuredData = {
   '@context': 'https://schema.org',
@@ -23,9 +24,11 @@ const structuredData = {
       operatingSystem: 'Web',
       description: 'No-code Kalshi and Polymarket monitoring with automated prediction market price alerts.',
       offers: {
-        '@type': 'Offer',
-        price: '19',
+        '@type': 'AggregateOffer',
+        lowPrice: '0',
+        highPrice: '19',
         priceCurrency: 'USD',
+        offerCount: '2',
         category: 'subscription',
       },
       featureList: [
@@ -67,14 +70,16 @@ const structuredData = {
   ],
 };
 
-export default function Page() {
+export default async function Page() {
+  const { userId } = await auth();
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
-      <LandingPage />
+      <LandingPage initialSignedIn={Boolean(userId)} />
     </>
   );
 }

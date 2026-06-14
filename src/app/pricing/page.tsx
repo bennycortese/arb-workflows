@@ -147,10 +147,10 @@ function CheckoutSuccessBanner() {
 
 export default function PricingPage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { sessionClaims } = useAuth();
   const router = useRouter();
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionState, setSubscriptionState] = useState<SubscriptionState>('loading');
 
@@ -161,16 +161,6 @@ export default function PricingPage() {
       return;
     }
 
-    const subscribed =
-      (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
-    const checkoutSuccess = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('success') === 'true';
-
-    if (subscribed) {
-      setSubscriptionState('active');
-      if (!checkoutSuccess) router.replace('/dashboard');
-      return;
-    }
-
     let cancelled = false;
     fetch('/api/subscription/status')
       .then(response => response.ok ? response.json() : { active: false })
@@ -178,7 +168,6 @@ export default function PricingPage() {
         if (cancelled) return;
         const active = data.active === true;
         setSubscriptionState(active ? 'active' : 'inactive');
-        if (active && !checkoutSuccess) router.replace('/dashboard');
       })
       .catch(() => {
         if (!cancelled) setSubscriptionState('inactive');
@@ -187,13 +176,7 @@ export default function PricingPage() {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, isSignedIn, sessionClaims, router]);
-
-  useEffect(() => {
-    if (subscriptionState === 'active') {
-      router.replace('/dashboard');
-    }
-  }, [subscriptionState, router]);
+  }, [isLoaded, isSignedIn]);
 
   async function handleSubscribe() {
     setLoading(true);
@@ -214,6 +197,24 @@ export default function PricingPage() {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleManageSubscription() {
+    setPortalLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/stripe/portal', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok || !data.url) {
+        setError(data.error ?? 'Could not open subscription management.');
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError('Could not open subscription management. Please try again.');
+    } finally {
+      setPortalLoading(false);
     }
   }
 
@@ -300,7 +301,7 @@ export default function PricingPage() {
                   className="mt-5 w-full"
                   onClick={() => router.push('/dashboard')}
                 >
-                  Open Free dashboard
+                  {subscriptionState === 'active' ? 'Open dashboard' : 'Continue with Free'}
                 </Button>
               ) : (
                 <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
@@ -374,14 +375,28 @@ export default function PricingPage() {
                 Checking your account…
               </Button>
             ) : isSignedIn && subscriptionState === 'active' ? (
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full"
-                onClick={() => router.push('/dashboard')}
-              >
-                Open dashboard
-              </Button>
+              <div className="space-y-3">
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                  This is your current plan.
+                </div>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                >
+                  {portalLoading ? 'Opening billing…' : 'Manage Pro subscription'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  Return to dashboard
+                </Button>
+              </div>
             ) : isSignedIn ? (
               <div className="space-y-3">
                 <Button
@@ -412,7 +427,7 @@ export default function PricingPage() {
           </div>
 
           <p className="text-xs text-white/25">
-            Secured by Stripe. Cancel anytime from your billing portal.
+            Pro payments are secured by Stripe. Cancel anytime from subscription management.
           </p>
           {isSignedIn && subscriptionState === 'inactive' && (
             <p className="mt-3 text-xs text-white/45">

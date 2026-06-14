@@ -381,7 +381,7 @@ export default function Dashboard() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(t('portalError'));
+        alert(data.error ?? t('portalError'));
       }
     } catch {
       alert(t('portalError'));
@@ -517,8 +517,19 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant="outline" size="sm" onClick={openBillingPortal} disabled={portalLoading}>
-              {portalLoading ? '…' : accountPlan === 'free' ? 'Upgrade to Pro' : t('manageSubscription')}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openBillingPortal}
+              disabled={portalLoading || accountPlan === null}
+            >
+              {portalLoading
+                ? 'Opening billing…'
+                : accountPlan === null
+                  ? 'Checking plan…'
+                  : accountPlan === 'free'
+                    ? 'Upgrade to Pro'
+                    : t('manageSubscription')}
             </Button>
             {accountPlan && (
               <span className="rounded-full border border-white/[0.08] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/45">
