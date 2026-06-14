@@ -259,6 +259,39 @@ describe('workflow evaluation contracts', () => {
         status: 'skip',
       }),
     ]);
+    expect(insert).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('keeps manual no-op runs in history for user-requested diagnostics', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({
+      market: { yes_bid_dollars: '0.40', title: 'Rate decision' },
+    })));
+
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      from: vi.fn((table: string) => (
+        table === 'workflow_runs' ? { insert } : { update }
+      )),
+    };
+
+    const results = await evaluateAndNotify({
+      id: 'wf-manual-noop',
+      nodes: [node('kalshi', {
+        marketTicker: 'KX-RATE',
+        priceThreshold: '0.60',
+        direction: 'above',
+      }, 'kalshi-1')],
+    }, 'manual', supabase as never);
+
+    expect(results[0]).toEqual(expect.objectContaining({ status: 'skip' }));
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      workflow_id: 'wf-manual-noop',
+      triggered_by: 'manual',
+    }));
+    expect(update).toHaveBeenCalled();
   });
 
   it('surfaces an atomic threshold claim failure as a source error', async () => {

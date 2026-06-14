@@ -329,6 +329,12 @@ async function logRun(
   workflowId: string,
   results: NotificationResult[]
 ): Promise<void> {
+  const hasDeliveryOrError = results.some(result =>
+    result.status === 'error' ||
+    (result.status === 'ok' && result.type !== 'kalshi' && result.type !== 'polymarket')
+  );
+  if (!hasDeliveryOrError) return;
+
   const finishedAt = new Date().toISOString();
   const status = results.some(result => result.status === 'error') ? 'error' : 'success';
 

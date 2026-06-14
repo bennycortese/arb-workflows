@@ -11,6 +11,13 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+  const { error: pruneError } = await supabase.rpc('prune_workflow_runs', {
+    p_retention_days: 90,
+  });
+  if (pruneError) {
+    console.error('[poll-all] failed to prune workflow run history:', pruneError.message);
+  }
+
   const { data: workflows, error } = await supabase
     .from('workflows')
     .select('*')

@@ -557,6 +557,30 @@ describe('notify — run logging', () => {
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ status: 'error' }));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ last_status: 'error' }));
   });
+
+  it('does not log a source crossing when no alert action is delivered', async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    const supabase = {
+      from: vi.fn((table: string) =>
+        table === 'workflow_runs' ? { insert } : { update }
+      ),
+    };
+
+    const results = await notify(
+      makeWorkflow([]),
+      makeKalshiNode(),
+      0.50,
+      supabase as any
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({ type: 'kalshi', status: 'ok' }),
+    ]);
+    expect(insert).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+  });
 });
 
 describe('notify — Polymarket source node', () => {

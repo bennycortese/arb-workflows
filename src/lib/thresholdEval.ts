@@ -411,23 +411,39 @@ export async function evaluateAndNotify(
     }
   }
 
-  // ── Step 3: Log the run to Supabase (automated runs only) ──────────────────
-  if (supabase) {
+  // ── Step 3: Keep history focused on user-visible events ───────────────────
+  if (supabase && shouldLogRun(triggeredBy, results)) {
     const status = results.every(r => r.status !== 'error') ? 'success' : 'error';
+    const finishedAt = new Date().toISOString();
     await supabase.from('workflow_runs').insert({
       workflow_id: workflow.id,
-      finished_at: new Date().toISOString(),
+      finished_at: finishedAt,
       status,
       triggered_by: triggeredBy,
       results,
     });
     await supabase.from('workflows').update({
-      last_run: new Date().toISOString(),
+      last_run: finishedAt,
       last_status: status,
     }).eq('id', workflow.id);
   }
 
   return results;
+}
+
+const ACTION_TYPES = new Set<NodeType>([
+  'discord', 'email', 'sms', 'webhook', 'telegram', 'slack',
+]);
+
+function shouldLogRun(
+  triggeredBy: 'manual' | 'worker' | 'cron',
+  results: RunResult[],
+): boolean {
+  if (triggeredBy === 'manual') return true;
+  return results.some(result =>
+    result.status === 'error' ||
+    (result.status === 'ok' && ACTION_TYPES.has(result.type))
+  );
 }
 
 // ── Dedup logic ───────────────────────────────────────────────────────────────
