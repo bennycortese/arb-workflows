@@ -15,7 +15,7 @@ export default function PrivacyPage() {
           Back to MarketPing
         </Link>
         <h1 className="mt-8 text-4xl font-bold text-white">Privacy Policy</h1>
-        <p className="mt-3 text-sm text-white/40">Effective June 6, 2026</p>
+        <p className="mt-3 text-sm text-white/40">Effective June 14, 2026</p>
 
         <div className="mt-10 space-y-8 leading-7">
           <section>
@@ -59,6 +59,12 @@ export default function PrivacyPage() {
               providers, such as telecommunications providers, solely to deliver messages and
               operate the service. Text messaging originator opt-in data and consent will not
               be shared with any third parties for their own purposes.
+            </p>
+            <p className="mt-2">
+              SMS message frequency varies based on the market alerts and workflows configured
+              by the user. Message and data rates may apply. Reply STOP to opt out of SMS
+              messages at any time or HELP for assistance. Consent to receive SMS messages is
+              not a condition of purchase.
             </p>
           </section>
 
