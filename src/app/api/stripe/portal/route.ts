@@ -3,6 +3,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '../../../../lib/stripe';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
 
+async function getPortalConfigurationId(stripe: ReturnType<typeof getStripe>) {
+  const configurations = await stripe.billingPortal.configurations.list({
+    active: true,
+    limit: 1,
+  });
+
+  if (configurations.data[0]) {
+    return configurations.data[0].id;
+  }
+
+  const configuration = await stripe.billingPortal.configurations.create({
+    name: 'MarketPing subscription management',
+    features: {
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: {
+        enabled: true,
+        mode: 'at_period_end',
+        cancellation_reason: {
+          enabled: true,
+          options: ['too_expensive', 'missing_features', 'unused', 'other'],
+        },
+      },
+    },
+  });
+
+  return configuration.id;
+}
+
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,8 +55,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const origin = new URL(request.url).origin;
-    const session = await getStripe().billingPortal.sessions.create({
+    const stripe = getStripe();
+    const configuration = await getPortalConfigurationId(stripe);
+    const session = await stripe.billingPortal.sessions.create({
       customer: data.stripe_customer_id,
+      configuration,
       return_url: `${origin}/dashboard`,
     });
 
