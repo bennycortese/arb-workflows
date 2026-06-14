@@ -270,6 +270,15 @@ describe('POST /api/workflows/save', () => {
           type: 'slack',
           config: { webhookUrl: 'https://hooks.slack.com/services/T/B/S' },
         },
+        {
+          id: 'sms-1',
+          type: 'sms',
+          config: {
+            toPhone: '+14155550123',
+            messageTemplate: 'MarketPing alert',
+            smsConsent: true,
+          },
+        },
       ],
       edges: [{ source: 'kalshi-1', target: 'slack-1' }],
     };
@@ -281,6 +290,7 @@ describe('POST /api/workflows/save', () => {
       expect.objectContaining({
         id: 'wf-1',
         user_id: 'user-1',
+        nodes: workflow.nodes,
         edges: workflow.edges,
         enabled: true,
       }),

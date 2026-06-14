@@ -192,7 +192,13 @@ export const saveWorkflowAtom = atom(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(workflow),
-    }).catch(err => console.error('[marketping] save failed:', err));
+    })
+      .then(async response => {
+        if (response.ok) return;
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `Save failed with status ${response.status}`);
+      })
+      .catch(err => console.error('[marketping] save failed:', err));
   }
 );
 

@@ -565,6 +565,11 @@ export default function WorkflowBuilder() {
   const [log, setLog] = useState<RunLogEntry[]>([]);
   const [fetchingWorkflow, setFetchingWorkflow] = useState(false);
   const initializedWorkflowRef = useRef<string | null>(null);
+  const latestWorkflowRef = useRef(workflow);
+
+  useEffect(() => {
+    latestWorkflowRef.current = workflow;
+  }, [workflow]);
 
   // If we landed directly on /workflow/[id] (page refresh), fetch from API
   useEffect(() => {
@@ -587,6 +592,27 @@ export default function WorkflowBuilder() {
     saveTimerRef.current = setTimeout(() => saveWorkflow(workflow), 1500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [workflow]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Flush the latest edit if the user navigates away before the debounce completes.
+  useEffect(() => {
+    const flushLatestWorkflow = () => {
+      const latestWorkflow = latestWorkflowRef.current;
+      if (!latestWorkflow) return;
+
+      fetch('/api/workflows/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(latestWorkflow),
+        keepalive: true,
+      }).catch(err => console.error('[marketping] save flush failed:', err));
+    };
+
+    window.addEventListener('pagehide', flushLatestWorkflow);
+    return () => {
+      window.removeEventListener('pagehide', flushLatestWorkflow);
+      flushLatestWorkflow();
+    };
+  }, []);
 
   // Persist waypoint changes from edge drag → jotai
   const onWaypointChange = useCallback((edgeId: string, wp: { x: number; y: number } | undefined) => {
