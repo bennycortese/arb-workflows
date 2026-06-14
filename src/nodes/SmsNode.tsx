@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { SmsConfig } from '../atoms';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,12 @@ interface Props {
 const VARS = ['{{market}}', '{{price}}', '{{threshold}}', '{{direction}}', '{{platform}}', '{{url}}'];
 
 export function SmsNodeConfig({ config, onChange }: Props) {
+  const [consentChecked, setConsentChecked] = useState(config.smsConsent === true);
+
+  useEffect(() => {
+    setConsentChecked(config.smsConsent === true);
+  }, [config.smsConsent]);
+
   const set = <K extends keyof SmsConfig>(key: K, value: SmsConfig[K]) =>
     onChange({ ...config, [key]: value });
 
@@ -31,7 +37,10 @@ export function SmsNodeConfig({ config, onChange }: Props) {
           id="sms-to"
           type="tel"
           value={config.toPhone}
-          onChange={e => set('toPhone', e.target.value)}
+          onChange={e => {
+            setConsentChecked(false);
+            onChange({ ...config, toPhone: e.target.value, smsConsent: false });
+          }}
           placeholder="+15551234567"
         />
         {phoneError && (
@@ -75,8 +84,11 @@ export function SmsNodeConfig({ config, onChange }: Props) {
         <input
           id="sms-consent"
           type="checkbox"
-          checked={config.smsConsent === true}
-          onChange={e => set('smsConsent', e.target.checked)}
+          checked={consentChecked}
+          onChange={e => {
+            setConsentChecked(e.target.checked);
+            if (!e.target.checked && config.smsConsent) set('smsConsent', false);
+          }}
           className="mt-0.5 h-4 w-4 accent-cyan-500"
         />
         <span className="text-xs leading-relaxed text-white/50">
@@ -88,6 +100,16 @@ export function SmsNodeConfig({ config, onChange }: Props) {
           <a href="/privacy" target="_blank" className="text-cyan-400 hover:underline">Privacy Policy</a>.
         </span>
       </label>
+
+      <Button
+        type="button"
+        variant={config.smsConsent ? 'outline' : 'primary'}
+        className="w-full"
+        disabled={!consentChecked || Boolean(phoneError) || !config.toPhone || config.smsConsent}
+        onClick={() => set('smsConsent', true)}
+      >
+        {config.smsConsent ? 'SMS opt-in confirmed' : 'Confirm SMS opt-in'}
+      </Button>
 
       <Card className="bg-green-500/5 border-green-500/15 p-3 space-y-1">
         <p className="text-xs text-green-400/80">

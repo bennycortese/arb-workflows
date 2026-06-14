@@ -60,7 +60,20 @@ export default function SmsOptInPage() {
 
           <p className="mt-5 text-sm text-white/40">
             The checkbox is unchecked by default. MarketPing stores the user&apos;s affirmative
-            choice with the SMS workflow and blocks sending unless consent has been confirmed.
+            choice only after the user selects the checkbox and clicks the confirmation button.
+            MarketPing blocks sending unless consent has been confirmed.
+          </p>
+
+          <button
+            type="button"
+            className="mt-5 w-full rounded-lg bg-cyan-500 px-5 py-3 text-sm font-semibold text-black"
+          >
+            Confirm SMS opt-in
+          </button>
+
+          <p className="mt-3 text-xs text-white/35">
+            This public page is a non-submitting example of the form shown in the authenticated
+            workflow builder.
           </p>
         </section>
 
