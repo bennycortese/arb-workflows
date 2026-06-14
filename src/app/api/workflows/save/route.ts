@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
+import { getAccountPlan, validateFreeWorkflow } from '../../../../lib/planLimits';
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
@@ -22,6 +23,36 @@ export async function POST(request: NextRequest) {
 
   if (ownedByOther) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  if (workflow.enabled) {
+    try {
+      const plan = await getAccountPlan(supabase, userId);
+      if (plan === 'free') {
+        const { data: otherEnabled, error: enabledError } = await supabase
+          .from('workflows')
+          .select('id,nodes,enabled')
+          .eq('user_id', userId)
+          .eq('enabled', true)
+          .neq('id', workflow.id);
+        if (enabledError) {
+          return NextResponse.json({ error: enabledError.message }, { status: 500 });
+        }
+
+        const limitError = validateFreeWorkflow(workflow, otherEnabled ?? []);
+        if (limitError) {
+          return NextResponse.json(
+            { error: limitError, code: 'free_plan_limit' },
+            { status: 403 },
+          );
+        }
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Could not verify account plan' },
+        { status: 500 },
+      );
+    }
   }
 
   const { error } = await supabase.from('workflows').upsert({

@@ -241,11 +241,9 @@ export default function PricingPage() {
                     {user.primaryEmailAddress?.emailAddress ?? user.fullName ?? 'MarketPing account'}
                   </p>
                 </div>
-                {subscriptionState === 'active' && (
-                  <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
-                    Dashboard
-                  </Button>
-                )}
+                <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
+                  Dashboard
+                </Button>
                 <UserButton />
               </>
             ) : (
@@ -273,13 +271,46 @@ export default function PricingPage() {
             <span className="gradient-text">prediction market edge</span>
           </h1>
           <p className="text-white/50 mb-10">
-            One straightforward plan for automated market monitoring.
+            Start free, then upgrade when you need more markets and delivery channels.
           </p>
 
           <Suspense>
             <CheckoutSuccessBanner />
             <CanceledBanner />
           </Suspense>
+
+          <div className="mb-8 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 text-left">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Free</p>
+                <p className="mt-1 text-xs text-white/45">The complete alert experience for two markets.</p>
+              </div>
+              <p className="text-2xl font-bold text-white">$0</p>
+            </div>
+            <ul className="mt-5 grid gap-2 text-sm text-white/65 sm:grid-cols-2">
+              <li>1 active workflow</li>
+              <li>2 active market sources</li>
+              <li>1 Email or Telegram action</li>
+              <li>Same monitoring speed</li>
+            </ul>
+            {isLoaded && (
+              isSignedIn ? (
+                <Button
+                  variant="outline"
+                  className="mt-5 w-full"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  Open Free dashboard
+                </Button>
+              ) : (
+                <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+                  <Button variant="outline" className="mt-5 w-full">
+                    Start free
+                  </Button>
+                </SignInButton>
+              )
+            )}
+          </div>
 
           {/* Billing toggle */}
           <div className="flex items-center justify-center gap-1 mb-8 p-1 rounded-lg bg-white/[0.04] border border-white/[0.06] w-fit mx-auto">
@@ -352,15 +383,25 @@ export default function PricingPage() {
                 Open dashboard
               </Button>
             ) : isSignedIn ? (
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full"
-                onClick={handleSubscribe}
-                disabled={loading}
-              >
-                {loading ? 'Opening secure checkout…' : 'Subscribe now'}
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleSubscribe}
+                  disabled={loading}
+                >
+                  {loading ? 'Opening secure checkout…' : 'Upgrade to Pro'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  Continue with Free
+                </Button>
+              </div>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/pricing">
                 <Button variant="primary" size="lg" className="w-full">
@@ -375,7 +416,8 @@ export default function PricingPage() {
           </p>
           {isSignedIn && subscriptionState === 'inactive' && (
             <p className="mt-3 text-xs text-white/45">
-              Signed in as {user?.primaryEmailAddress?.emailAddress}. Subscribe to unlock the dashboard.
+              Signed in as {user?.primaryEmailAddress?.emailAddress}. Free includes one active workflow,
+              two market sources, and one Email or Telegram action.
             </p>
           )}
         </div>

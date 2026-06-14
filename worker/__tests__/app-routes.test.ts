@@ -36,14 +36,48 @@ function jsonRequest(body: unknown): Request {
   });
 }
 
+function subscriptionQuery(data: unknown, error: unknown = null) {
+  const maybeSingle = vi.fn().mockResolvedValue({ data, error });
+  const eq = vi.fn(() => ({ maybeSingle }));
+  const select = vi.fn(() => ({ eq }));
+  return { select, eq, maybeSingle };
+}
+
 function makeRunSupabase(ownedWorkflow: { id: string } | null) {
   const maybeSingle = vi.fn().mockResolvedValue({ data: ownedWorkflow, error: null });
   const eqUser = vi.fn(() => ({ maybeSingle }));
   const eqId = vi.fn(() => ({ eq: eqUser }));
   const select = vi.fn(() => ({ eq: eqId }));
+  const planMaybeSingle = vi.fn().mockResolvedValue({ data: { status: 'active' }, error: null });
+  const planEq = vi.fn(() => ({ maybeSingle: planMaybeSingle }));
+  const planSelect = vi.fn(() => ({ eq: planEq }));
   return {
-    from: vi.fn(() => ({ select })),
-    spies: { select, eqId, eqUser, maybeSingle },
+    from: vi.fn((table: string) => table === 'subscriptions'
+      ? { select: planSelect }
+      : { select }),
+    spies: { select, eqId, eqUser, maybeSingle, planSelect, planEq, planMaybeSingle },
+  };
+}
+
+function makeFreeRunSupabase(
+  ownedWorkflow: { id: string } | null,
+  otherEnabled: unknown[] = [],
+) {
+  const ownershipMaybeSingle = vi.fn().mockResolvedValue({ data: ownedWorkflow, error: null });
+  const ownershipEqUser = vi.fn(() => ({ maybeSingle: ownershipMaybeSingle }));
+  const ownershipEqId = vi.fn(() => ({ eq: ownershipEqUser }));
+  const enabledNeq = vi.fn().mockResolvedValue({ data: otherEnabled, error: null });
+  const enabledEqStatus = vi.fn(() => ({ neq: enabledNeq }));
+  const enabledEqUser = vi.fn(() => ({ eq: enabledEqStatus }));
+  const workflowSelect = vi.fn((columns: string) => columns === 'id'
+    ? { eq: ownershipEqId }
+    : { eq: enabledEqUser });
+  const plan = subscriptionQuery(null);
+
+  return {
+    from: vi.fn((table: string) => table === 'subscriptions'
+      ? plan
+      : { select: workflowSelect }),
   };
 }
 
@@ -62,9 +96,15 @@ function makeSaveSupabase(options: {
     error: options.workflowError ?? null,
   });
   const stateUpsert = vi.fn().mockResolvedValue({ error: null });
+  const planMaybeSingle = vi.fn().mockResolvedValue({ data: { status: 'active' }, error: null });
+  const planEq = vi.fn(() => ({ maybeSingle: planMaybeSingle }));
+  const planSelect = vi.fn(() => ({ eq: planEq }));
 
   return {
     from: vi.fn((table: string) => {
+      if (table === 'subscriptions') {
+        return { select: planSelect };
+      }
       if (table === 'workflows') {
         return { select, upsert: workflowUpsert };
       }
@@ -73,7 +113,10 @@ function makeSaveSupabase(options: {
       }
       throw new Error(`Unexpected table ${table}`);
     }),
-    spies: { select, eq, neq, maybeSingle, workflowUpsert, stateUpsert },
+    spies: {
+      select, eq, neq, maybeSingle, workflowUpsert, stateUpsert,
+      planSelect, planEq, planMaybeSingle,
+    },
   };
 }
 
@@ -81,6 +124,11 @@ describe('POST /api/actions/test', () => {
   beforeEach(() => {
     mocks.auth.mockReset();
     mocks.sendActionNotification.mockReset();
+    mocks.getSupabaseAdmin.mockReset();
+    const plan = subscriptionQuery({ status: 'active' });
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => plan),
+    });
   });
 
   it('rejects signed-out requests', async () => {
@@ -149,6 +197,26 @@ describe('POST /api/actions/test', () => {
       result: expect.objectContaining({ status: 'error' }),
     });
   });
+
+  it('blocks Pro-only action tests on the Free plan', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const plan = subscriptionQuery(null);
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn(() => plan),
+    });
+
+    const response = await testAction(jsonRequest({
+      id: 'slack-1',
+      type: 'slack',
+      config: { webhookUrl: 'https://hooks.slack.com/services/T/B/S' },
+    }) as never);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      code: 'free_plan_limit',
+    }));
+    expect(mocks.sendActionNotification).not.toHaveBeenCalled();
+  });
 });
 
 describe('POST /api/workflows/run', () => {
@@ -216,6 +284,52 @@ describe('POST /api/workflows/run', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).success).toBe(false);
   });
+
+  it('allows a compliant Free workflow through the manual run path', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const supabase = makeFreeRunSupabase({ id: 'wf-1' });
+    mocks.getSupabaseAdmin.mockReturnValue(supabase as never);
+    mocks.evaluateAndNotify.mockResolvedValue([
+      { nodeId: 'email-1', type: 'email', status: 'ok', message: 'sent' },
+    ]);
+    const workflow = {
+      id: 'wf-1',
+      nodes: [
+        { id: 'source-1', type: 'kalshi', config: {} },
+        { id: 'email-1', type: 'email', config: {} },
+      ],
+    };
+
+    const response = await runWorkflow(jsonRequest({ workflow }) as never);
+
+    expect(response.status).toBe(200);
+    expect(mocks.evaluateAndNotify).toHaveBeenCalled();
+  });
+
+  it('blocks manual runs that exceed the Free plan', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const supabase = makeFreeRunSupabase(
+      { id: 'wf-2' },
+      [{ id: 'wf-1', enabled: true, nodes: [] }],
+    );
+    mocks.getSupabaseAdmin.mockReturnValue(supabase as never);
+
+    const response = await runWorkflow(jsonRequest({
+      workflow: {
+        id: 'wf-2',
+        nodes: [
+          { id: 'source-1', type: 'kalshi', config: {} },
+          { id: 'email-1', type: 'email', config: {} },
+        ],
+      },
+    }) as never);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      code: 'free_plan_limit',
+    }));
+    expect(mocks.evaluateAndNotify).not.toHaveBeenCalled();
+  });
 });
 
 describe('POST /api/workflows/save', () => {
@@ -244,6 +358,47 @@ describe('POST /api/workflows/save', () => {
 
     expect(response.status).toBe(404);
     expect(supabase.spies.workflowUpsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects a second active workflow on the Free plan', async () => {
+    mocks.auth.mockResolvedValue({ userId: 'user-1' });
+    const ownershipMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const ownershipNeq = vi.fn(() => ({ maybeSingle: ownershipMaybeSingle }));
+    const ownershipEq = vi.fn(() => ({ neq: ownershipNeq }));
+    const enabledResult = vi.fn().mockResolvedValue({
+      data: [{ id: 'wf-existing', enabled: true, nodes: [] }],
+      error: null,
+    });
+    const enabledNeq = vi.fn(() => enabledResult());
+    const enabledEqStatus = vi.fn(() => ({ neq: enabledNeq }));
+    const enabledEqUser = vi.fn(() => ({ eq: enabledEqStatus }));
+    const workflowSelect = vi.fn((columns: string) => columns === 'id'
+      ? { eq: ownershipEq }
+      : { eq: enabledEqUser });
+    const workflowUpsert = vi.fn();
+    const plan = subscriptionQuery(null);
+    mocks.getSupabaseAdmin.mockReturnValue({
+      from: vi.fn((table: string) => table === 'subscriptions'
+        ? plan
+        : { select: workflowSelect, upsert: workflowUpsert }),
+    });
+
+    const response = await saveWorkflow(jsonRequest({
+      id: 'wf-new',
+      name: 'Second workflow',
+      enabled: true,
+      nodes: [
+        { id: 'source-1', type: 'kalshi', config: {} },
+        { id: 'email-1', type: 'email', config: {} },
+      ],
+    }) as never);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      code: 'free_plan_limit',
+      error: expect.stringContaining('one active workflow'),
+    }));
+    expect(workflowUpsert).not.toHaveBeenCalled();
   });
 
   it('persists workflow edges and source market state rows', async () => {

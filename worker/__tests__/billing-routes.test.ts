@@ -29,6 +29,7 @@ vi.mock('../../src/lib/stripeConfig', () => ({
 
 import { GET as subscriptionStatus } from '../../src/app/api/subscription/status/route';
 import { POST as createCheckout } from '../../src/app/api/stripe/checkout/route';
+import { FREE_PLAN_LIMITS } from '../../src/lib/planLimits';
 
 function checkoutRequest(billing: 'monthly' | 'yearly' = 'monthly'): Request {
   return new Request('https://www.marketping.ai/api/stripe/checkout', {
@@ -80,6 +81,8 @@ describe('GET /api/subscription/status', () => {
     expect(await response.json()).toEqual({
       active,
       status: status ?? 'inactive',
+      plan: active ? 'pro' : 'free',
+      limits: active ? null : FREE_PLAN_LIMITS,
     });
   });
 

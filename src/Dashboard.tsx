@@ -367,8 +367,13 @@ export default function Dashboard() {
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
+  const [accountPlan, setAccountPlan] = useState<'free' | 'pro' | null>(null);
 
   async function openBillingPortal() {
+    if (accountPlan === 'free') {
+      router.push('/pricing');
+      return;
+    }
     setPortalLoading(true);
     try {
       const res = await fetch('/api/stripe/portal', { method: 'POST' });
@@ -400,6 +405,13 @@ export default function Dashboard() {
       });
   }, [loaded, setWorkflows, setLoaded]);
 
+  useEffect(() => {
+    fetch('/api/subscription/status')
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setAccountPlan(data?.plan === 'pro' ? 'pro' : 'free'))
+      .catch(() => setAccountPlan('free'));
+  }, []);
+
   function createWorkflow(name: string) {
     const wf: Workflow = {
       id: uuidv4(),
@@ -419,13 +431,22 @@ export default function Dashboard() {
     deleteWorkflowRemote(id);
   }
 
-  function toggleWorkflow(id: string) {
-    setWorkflows(prev => prev.map(w => {
-      if (w.id !== id) return w;
-      const updated = { ...w, enabled: !w.enabled };
-      saveWorkflow(updated);
-      return updated;
-    }));
+  async function toggleWorkflow(id: string) {
+    const workflow = workflows.find(w => w.id === id);
+    if (!workflow) return;
+
+    const updated = { ...workflow, enabled: !workflow.enabled };
+    const response = await fetch('/api/workflows/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      alert(data.error ?? 'Could not update this workflow.');
+      return;
+    }
+    setWorkflows(prev => prev.map(w => w.id === id ? updated : w));
   }
 
   function openWorkflow(id: string) {
@@ -497,8 +518,13 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Button variant="outline" size="sm" onClick={openBillingPortal} disabled={portalLoading}>
-              {portalLoading ? '…' : t('manageSubscription')}
+              {portalLoading ? '…' : accountPlan === 'free' ? 'Upgrade to Pro' : t('manageSubscription')}
             </Button>
+            {accountPlan && (
+              <span className="rounded-full border border-white/[0.08] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/45">
+                {accountPlan}
+              </span>
+            )}
             <Button variant="primary" size="sm" onClick={() => setCreating(true)}>
               {t('newWorkflow')}
             </Button>

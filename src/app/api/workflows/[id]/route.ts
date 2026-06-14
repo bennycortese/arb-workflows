@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '../../../../lib/supabase';
+import { getAccountPlan, validateFreeWorkflow } from '../../../../lib/planLimits';
 
 function rowToWorkflow(row: any) {
   return {
@@ -49,12 +50,45 @@ export async function PATCH(
   // Verify ownership before updating
   const { data: existing } = await supabase
     .from('workflows')
-    .select('id')
+    .select('id,nodes,enabled')
     .eq('id', id)
     .eq('user_id', userId)
     .single();
 
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const effectiveEnabled = body.enabled ?? existing.enabled;
+  if (effectiveEnabled) {
+    try {
+      const plan = await getAccountPlan(supabase, userId);
+      if (plan === 'free') {
+        const { data: otherEnabled, error: enabledError } = await supabase
+          .from('workflows')
+          .select('id,nodes,enabled')
+          .eq('user_id', userId)
+          .eq('enabled', true)
+          .neq('id', id);
+        if (enabledError) {
+          return NextResponse.json({ error: enabledError.message }, { status: 500 });
+        }
+        const limitError = validateFreeWorkflow(
+          { id, nodes: body.nodes ?? existing.nodes ?? [] },
+          otherEnabled ?? [],
+        );
+        if (limitError) {
+          return NextResponse.json(
+            { error: limitError, code: 'free_plan_limit' },
+            { status: 403 },
+          );
+        }
+      }
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Could not verify account plan' },
+        { status: 500 },
+      );
+    }
+  }
 
   const patch: Record<string, any> = {};
   if (body.name       !== undefined) patch.name       = body.name;

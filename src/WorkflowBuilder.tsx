@@ -564,12 +564,20 @@ export default function WorkflowBuilder() {
   const [running, setRunning] = useState(false);
   const [log, setLog] = useState<RunLogEntry[]>([]);
   const [fetchingWorkflow, setFetchingWorkflow] = useState(false);
+  const [accountPlan, setAccountPlan] = useState<'free' | 'pro' | null>(null);
   const initializedWorkflowRef = useRef<string | null>(null);
   const latestWorkflowRef = useRef(workflow);
 
   useEffect(() => {
     latestWorkflowRef.current = workflow;
   }, [workflow]);
+
+  useEffect(() => {
+    fetch('/api/subscription/status')
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setAccountPlan(data?.plan === 'pro' ? 'pro' : 'free'))
+      .catch(() => setAccountPlan('free'));
+  }, []);
 
   // If we landed directly on /workflow/[id] (page refresh), fetch from API
   useEffect(() => {
@@ -691,6 +699,25 @@ export default function WorkflowBuilder() {
   // Add a node from the picker
   function addNode(type: NodeType) {
     if (!workflow) return;
+    if (accountPlan === 'free') {
+      const sourceCount = workflow.nodes.filter(node => isSourceType(node.type)).length;
+      const actionCount = workflow.nodes.filter(node => isActionType(node.type)).length;
+      const freeActions = new Set<NodeType>(['email', 'telegram']);
+
+      if (isSourceType(type) && sourceCount >= 2) {
+        alert('The Free plan supports up to two Kalshi or Polymarket sources.');
+        return;
+      }
+      if (isActionType(type) && actionCount >= 1) {
+        alert('The Free plan supports one action per workflow.');
+        return;
+      }
+      if (isActionType(type) && !freeActions.has(type)) {
+        alert('The Free plan includes Email and Telegram. Upgrade to Pro for this action.');
+        router.push('/pricing');
+        return;
+      }
+    }
     const node = createNode(type);
     const isSource = isSourceType(type);
     const peers = workflow.nodes.filter(n =>

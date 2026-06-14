@@ -1,6 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
-import { getSupabaseAdmin } from './lib/supabase';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -20,44 +18,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/poll-all',
 ]);
 
-const isSubscribedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/workflow/(.*)',
-  '/api/workflows(.*)',
-  '/api/actions(.*)',
-  '/api/kalshi(.*)',
-  '/api/polymarket(.*)',
-  '/api/telegram/connect',
-  '/api/telegram/connections',
-]);
-
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     await auth.protect();
-  }
-
-  if (isSubscribedRoute(request)) {
-    const { userId, sessionClaims } = await auth();
-    if (userId) {
-      let subscribed = (sessionClaims?.publicMetadata as Record<string, unknown> | undefined)?.subscribed === true;
-
-      // JWT can lag after checkout — trust Supabase if subscription is active
-      if (!subscribed) {
-        const { data } = await getSupabaseAdmin()
-          .from('subscriptions')
-          .select('status')
-          .eq('user_id', userId)
-          .maybeSingle();
-        subscribed = data?.status === 'active';
-      }
-
-      if (!subscribed) {
-        if (request.nextUrl.pathname.startsWith('/api/')) {
-          return NextResponse.json({ error: 'Subscription required' }, { status: 403 });
-        }
-        return NextResponse.redirect(new URL('/pricing', request.url));
-      }
-    }
   }
 });
 
