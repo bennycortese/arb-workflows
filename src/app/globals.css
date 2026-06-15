@@ -191,6 +191,7 @@
   input[type="email"],
   input[type="password"],
   input[type="url"],
+  input[type="tel"],
   input[type="number"],
   textarea,
   select {
@@ -966,6 +967,7 @@
 .cn-config input[type="text"],
 .cn-config input[type="email"],
 .cn-config input[type="url"],
+.cn-config input[type="tel"],
 .cn-config input[type="number"] { cursor: text; }
 .cn-config button:not(:disabled) { cursor: pointer; }
 
