@@ -20,6 +20,10 @@ const NODE_META: Record<string, { color: string; accent: string; label: string }
   polymarket: { color: '#3b82f6', accent: 'rgba(59,130,246,0.18)', label: 'Poly' },
   discord:    { color: '#818cf8', accent: 'rgba(129,140,248,0.18)', label: 'Discord' },
   email:      { color: '#f87171', accent: 'rgba(248,113,113,0.18)', label: 'Email' },
+  sms:        { color: '#4ade80', accent: 'rgba(74,222,128,0.18)', label: 'SMS' },
+  webhook:    { color: '#22d3ee', accent: 'rgba(34,211,238,0.18)', label: 'Webhook' },
+  telegram:   { color: '#38bdf8', accent: 'rgba(56,189,248,0.18)', label: 'Telegram' },
+  slack:      { color: '#c084fc', accent: 'rgba(192,132,252,0.18)', label: 'Slack' },
 };
 
 // ─── Mini canvas ──────────────────────────────────────────────────────────────
@@ -169,6 +173,8 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
               onClick={onToggle}
               className={`wf-toggle ${workflow.enabled ? 'wf-toggle-on' : 'wf-toggle-off'}`}
               title={workflow.enabled ? t('disableWorkflow') : t('enableWorkflow')}
+              aria-label={workflow.enabled ? t('disableWorkflow') : t('enableWorkflow')}
+              aria-pressed={workflow.enabled}
             >
               <span className={`wf-toggle-knob ${workflow.enabled ? 'knob-on' : 'knob-off'}`} />
             </button>
@@ -185,6 +191,7 @@ function WorkflowCard({ workflow, onDelete, onToggle, onOpen }: {
             onClick={e => { e.stopPropagation(); onDelete(); }}
             className="wf-delete-btn"
             title={t('deleteWorkflow')}
+            aria-label={t('deleteWorkflow')}
           >
             ×
           </button>
