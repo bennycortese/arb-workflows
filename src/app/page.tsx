@@ -34,7 +34,7 @@ const structuredData = {
       featureList: [
         'Kalshi price alerts',
         'Polymarket price alerts',
-        'Discord, Telegram, Slack, email, SMS, and webhook notifications',
+        'Discord, Telegram, Slack, email, and webhook notifications',
         'No-code prediction market workflows',
       ],
     },
@@ -54,7 +54,7 @@ const structuredData = {
           name: 'Can I create Polymarket alerts?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes. Select a Polymarket event and outcome, choose a price threshold, and send alerts through Discord, Telegram, Slack, email, SMS, or a webhook.',
+            text: 'Yes. Select a Polymarket event and outcome, choose a price threshold, and send alerts through Discord, Telegram, Slack, email, or a webhook.',
           },
         },
         {

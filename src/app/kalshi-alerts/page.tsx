@@ -4,7 +4,7 @@ import IntentLandingPage from '../../IntentLandingPage';
 export const metadata: Metadata = {
   title: 'Kalshi Alerts and Price Monitoring',
   description:
-    'Create automated Kalshi price alerts without code. Monitor market probabilities and send notifications to Telegram, Discord, Slack, email, SMS, or webhooks.',
+    'Create automated Kalshi price alerts without code. Monitor market probabilities and send notifications to Telegram, Discord, Slack, email, or webhooks.',
   alternates: { canonical: '/kalshi-alerts' },
   openGraph: {
     title: 'Kalshi Alerts and Price Monitoring | MarketPing',
@@ -32,7 +32,7 @@ const sections = [
     title: 'How to create a Kalshi alert',
     paragraphs: [
       'Start a workflow and add Kalshi as the source. Search available markets by event, topic, or ticker, then select the contract you want to monitor. Choose an above or below condition and enter the price threshold.',
-      'Connect an action such as Telegram, Discord, Slack, email, SMS, or a generic webhook. Once the workflow is active, MarketPing polls the market and records each run so you can see what happened.',
+      'Connect an action such as Telegram, Discord, Slack, email, or a generic webhook. Once the workflow is active, MarketPing polls the market and records each run so you can see what happened.',
     ],
   },
   {

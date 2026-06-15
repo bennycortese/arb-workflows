@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     default: 'Kalshi & Polymarket Alerts | MarketPing',
     template: '%s | MarketPing',
   },
-  description: 'Create automated Kalshi and Polymarket price alerts for Discord, Telegram, Slack, email, SMS, and webhooks. No-code prediction market monitoring.',
+  description: 'Create automated Kalshi and Polymarket price alerts for Discord, Telegram, Slack, email, and webhooks. No-code prediction market monitoring.',
   keywords: [
     'Kalshi alerts',
     'Polymarket alerts',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     url: '/',
     siteName: 'MarketPing',
     title: 'Kalshi & Polymarket Price Alerts | MarketPing',
-    description: 'Monitor prediction market prices and send automated alerts to Discord, Telegram, Slack, email, SMS, or any webhook.',
+    description: 'Monitor prediction market prices and send automated alerts to Discord, Telegram, Slack, email, or any webhook.',
   },
   twitter: {
     card: 'summary_large_image',

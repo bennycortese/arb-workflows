@@ -15,7 +15,7 @@
   "landing": {
     "badge": "Kalshi + Polymarket price alerts",
     "heroTitle": "Prediction market alerts, automated.",
-    "heroSubtitle": "Monitor Kalshi and Polymarket prices and get instant alerts on Discord, Telegram, Slack, email, SMS, or webhooks. Build no-code workflows in minutes.",
+    "heroSubtitle": "Monitor Kalshi and Polymarket prices and get instant alerts on Discord, Telegram, Slack, email, or webhooks. Build no-code workflows in minutes.",
     "ctaPrimary": "Start free",
     "ctaSecondary": "See how it works",
     "openDashboard": "Open Dashboard →",
@@ -27,7 +27,7 @@
     "step1Title": "Pick your source",
     "step1Body": "Choose a Kalshi or Polymarket event, select an outcome, and set the price threshold you want to monitor.",
     "step2Title": "Add actions",
-    "step2Body": "Chain Discord, email, SMS, webhooks, Telegram, and Slack alerts. Use template variables to include live market data.",
+    "step2Body": "Chain Discord, email, webhook, Telegram, and Slack alerts. Use template variables to include live market data.",
     "step3Title": "Enable and forget",
     "step3Body": "Enable your workflow. MarketPing monitors prices continuously and alerts you when the configured threshold is crossed.",
     "ctaSectionTitle": "Stop watching prediction markets manually",

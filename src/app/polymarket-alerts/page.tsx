@@ -4,7 +4,7 @@ import IntentLandingPage from '../../IntentLandingPage';
 export const metadata: Metadata = {
   title: 'Polymarket Alerts and Price Monitoring',
   description:
-    'Set automated Polymarket price alerts for specific events and outcomes. Get notifications through Telegram, Discord, Slack, email, SMS, or webhooks.',
+    'Set automated Polymarket price alerts for specific events and outcomes. Get notifications through Telegram, Discord, Slack, email, or webhooks.',
   alternates: { canonical: '/polymarket-alerts' },
   openGraph: {
     title: 'Polymarket Alerts and Price Monitoring | MarketPing',

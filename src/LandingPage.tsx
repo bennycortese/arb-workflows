@@ -158,7 +158,7 @@ const NODE_TYPES = [
     id: 'sms',
     label: 'SMS',
     badgeClass: 'badge-sms',
-    role: 'Action',
+    role: 'Coming soon',
     color: '#4ade80',
     bg: 'bg-green-500/5',
     border: 'border-green-500/15',
@@ -169,8 +169,8 @@ const NODE_TYPES = [
         <path d="M8 7h8M8 11h5" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
     ),
-    description: 'Text alerts to your phone the moment a threshold is crossed. Powered by Twilio.',
-    features: ['E.164 phone numbers', 'Custom message templates', 'Instant delivery'],
+    description: 'Text alerts are being prepared and will become available after carrier approval is complete.',
+    features: ['Carrier registration in progress', 'Custom message templates', 'Launch notification coming soon'],
   },
   {
     id: 'webhook',
@@ -313,7 +313,7 @@ const FAQS = [
   },
   {
     question: 'Where can prediction market alerts be sent?',
-    answer: 'MarketPing supports Discord, Telegram, Slack, email, SMS, and generic HTTPS webhooks for tools such as Zapier, Make, and n8n.',
+    answer: 'MarketPing supports Discord, Telegram, Slack, email, and generic HTTPS webhooks for tools such as Zapier, Make, and n8n. SMS is coming soon.',
   },
   {
     question: 'Do I need to write code or use an API?',

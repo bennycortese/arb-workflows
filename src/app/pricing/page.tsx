@@ -16,7 +16,7 @@ function CheckIcon() {
 const FEATURES = [
   'Automated Kalshi & Polymarket monitoring',
   'Unlimited workflows',
-  'Telegram, Discord, Slack, email, SMS & webhooks',
+  'Telegram, Discord, Slack, email & webhooks',
   'Reliable retries and duplicate-alert prevention',
   'Test alerts and workflow run history',
   'Cancel anytime',

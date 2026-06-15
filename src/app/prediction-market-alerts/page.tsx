@@ -4,7 +4,7 @@ import IntentLandingPage from '../../IntentLandingPage';
 export const metadata: Metadata = {
   title: 'Prediction Market Alerts and Automation',
   description:
-    'Automate prediction market alerts across Kalshi and Polymarket. Monitor price thresholds and notify Telegram, Discord, Slack, email, SMS, or webhooks.',
+    'Automate prediction market alerts across Kalshi and Polymarket. Monitor price thresholds and notify Telegram, Discord, Slack, email, or webhooks.',
   alternates: { canonical: '/prediction-market-alerts' },
   openGraph: {
     title: 'Prediction Market Alerts and Automation | MarketPing',
@@ -19,7 +19,7 @@ const sections = [
     title: 'One workflow for market monitoring and notification',
     paragraphs: [
       'Prediction markets turn changing expectations into observable prices, but following those prices manually does not scale. MarketPing separates monitoring into two simple parts: a source that defines the market condition and an action that defines where the resulting alert should go.',
-      'Sources currently support Kalshi and Polymarket. Actions include Telegram, Discord, Slack, email, SMS, and generic webhooks. This makes it possible to use the same workflow model for a personal notification, a shared research channel, or a custom downstream system.',
+      'Sources currently support Kalshi and Polymarket. Actions include Telegram, Discord, Slack, email, and generic webhooks. This makes it possible to use the same workflow model for a personal notification, a shared research channel, or a custom downstream system.',
     ],
     bullets: [
       'No-code threshold conditions',
@@ -64,7 +64,7 @@ const faqs = [
   {
     question: 'Where can prediction market alerts be sent?',
     answer:
-      'Workflows can send alerts to Telegram, Discord, Slack, email, SMS, or a generic webhook for custom integrations.',
+      'Workflows can send alerts to Telegram, Discord, Slack, email, or a generic webhook for custom integrations.',
   },
   {
     question: 'Do I need to write code to create an alert?',
