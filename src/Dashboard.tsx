@@ -7,6 +7,7 @@ import { useUser, UserButton } from '@clerk/nextjs';
 import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from './@/components/ui/button';
+import { summarizeRun } from './lib/runHistory';
 import {
   workflowsAtom, activeWorkflowIdAtom, Workflow, WorkflowNode, WorkflowEdge,
   workflowsLoadedAtom, saveWorkflowAtom, deleteWorkflowAtom,
@@ -214,12 +215,6 @@ type RunRecord = {
   results: { type: string; status: string; message: string }[];
 };
 
-function runSummary(run: RunRecord): string {
-  const ok = run.results.filter(r => r.status === 'ok');
-  if (ok.length === 0) return run.results[0]?.message ?? 'No details';
-  return ok.map(r => r.message).join(' · ');
-}
-
 function RunHistoryPanel() {
   const t = useTranslations('dashboard');
   const [runs, setRuns] = useState<RunRecord[] | null>(null);
@@ -286,7 +281,7 @@ function RunHistoryPanel() {
                     <span className="db-run-workflow">{run.workflowName}</span>
                     <span className="db-run-meta">{triggerLabel(run.triggeredBy)} · {timeAgo(run.startedAt)}</span>
                   </div>
-                  <p className="db-run-summary">{runSummary(run)}</p>
+                  <p className="db-run-summary">{summarizeRun(run.status, run.results)}</p>
                 </li>
               ))}
             </ul>

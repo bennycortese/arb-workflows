@@ -243,7 +243,7 @@ export function testNotificationVars(): Record<string, string> {
 async function fetchKalshiPrice(
   marketTicker: string,
   apiKey?: string
-): Promise<{ price: number; title: string }> {
+): Promise<{ price: number; title: string; finalized: boolean }> {
   const url = `https://api.elections.kalshi.com/trade-api/v2/markets/${marketTicker.toUpperCase()}`;
   const resp = await fetchWithRetry(url, {
     headers: {
@@ -254,10 +254,27 @@ async function fetchKalshiPrice(
     signal: AbortSignal.timeout(8000),
   });
   if (!resp.ok) throw new Error(`Kalshi API ${resp.status}: ${await resp.text()}`);
-  const data = await resp.json() as { market?: { yes_bid_dollars?: string; title?: string } };
+  const data = await resp.json() as {
+    market?: {
+      yes_bid_dollars?: string;
+      last_price_dollars?: string;
+      settlement_value_dollars?: string;
+      title?: string;
+      status?: string;
+    };
+  };
+  const market = data.market;
+  if (!market) throw new Error('Kalshi market not found');
+  const finalized = market.status === 'finalized' || market.status === 'settled';
+  const rawPrice = finalized
+    ? market.settlement_value_dollars
+    : market.yes_bid_dollars ?? market.last_price_dollars;
+  const price = Number.parseFloat(rawPrice ?? '');
+  if (!Number.isFinite(price)) throw new Error('Kalshi price is unavailable');
   return {
-    price: parseFloat(data.market?.yes_bid_dollars ?? '0'),
-    title: data.market?.title ?? marketTicker,
+    price,
+    title: market.title ?? marketTicker,
+    finalized,
   };
 }
 
@@ -273,11 +290,15 @@ async function fetchPolymarketPrice(
   if (!resp.ok) throw new Error(`Polymarket API ${resp.status}`);
   const data = await resp.json() as { question?: string; outcomePrices?: string; outcomes?: string }[];
   const market = data[0];
-  if (!market) throw new Error('Market not found');
+  if (!market) throw new Error('Polymarket market is no longer available. Reselect this market.');
   const prices: number[] = JSON.parse(market.outcomePrices ?? '[]');
   const outcomes: string[] = JSON.parse(market.outcomes ?? '[]');
+  const price = prices[outcomeIndex];
+  if (!Number.isFinite(price)) {
+    throw new Error('Polymarket outcome is no longer available. Reselect this market.');
+  }
   return {
-    price: prices[outcomeIndex] ?? 0,
+    price,
     title: market.question ?? marketSlug,
     outcomeLabel: outcomes[outcomeIndex] ?? 'outcome',
   };
@@ -326,6 +347,19 @@ export async function evaluateAndNotify(
         vars.threshold = `${(threshold * 100).toFixed(0)}¢`;
         vars.direction = direction ?? 'any';
         vars.url       = `https://kalshi.com/markets/${marketTicker}`;
+
+        if (fetched.finalized) {
+          await resolveDedup(
+            workflow.id, node.id, 'kalshi', marketTicker, price, false, triggeredBy, supabase
+          );
+          results.push({
+            nodeId: node.id,
+            type: 'kalshi',
+            status: 'skip',
+            message: `${title} finalized at ${vars.price}`,
+          });
+          continue;
+        }
 
         const inZone =
           direction === 'any' ||
@@ -415,6 +449,9 @@ export async function evaluateAndNotify(
   if (supabase && shouldLogRun(triggeredBy, results)) {
     const status = results.every(r => r.status !== 'error') ? 'success' : 'error';
     const finishedAt = new Date().toISOString();
+    if (status === 'error' && await isRepeatedRecentError(supabase, workflow.id, results)) {
+      return results;
+    }
     await supabase.from('workflow_runs').insert({
       workflow_id: workflow.id,
       finished_at: finishedAt,
@@ -444,6 +481,34 @@ function shouldLogRun(
     result.status === 'error' ||
     (result.status === 'ok' && ACTION_TYPES.has(result.type))
   );
+}
+
+function errorSignature(results: RunResult[]): string {
+  return results
+    .filter(result => result.status === 'error')
+    .map(result => `${result.nodeId}:${result.type}:${result.message}`)
+    .sort()
+    .join('|');
+}
+
+async function isRepeatedRecentError(
+  supabase: SupabaseClient,
+  workflowId: string,
+  results: RunResult[],
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('workflow_runs')
+    .select('started_at,results')
+    .eq('workflow_id', workflowId)
+    .eq('status', 'error')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.started_at || !Array.isArray(data.results)) return false;
+  const ageMs = Date.now() - new Date(data.started_at).getTime();
+  if (ageMs > 6 * 60 * 60 * 1000) return false;
+  return errorSignature(data.results as RunResult[]) === errorSignature(results);
 }
 
 // ── Dedup logic ───────────────────────────────────────────────────────────────

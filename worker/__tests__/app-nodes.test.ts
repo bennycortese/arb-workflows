@@ -135,7 +135,69 @@ describe('source node contracts', () => {
       expect(results[0]).toEqual(expect.objectContaining({
         type: 'polymarket',
         status: 'error',
-        message: 'Market not found',
+        message: 'Polymarket market is no longer available. Reselect this market.',
+      }));
+    });
+
+    it('does not substitute zero when a saved outcome index is no longer valid', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson([{
+        question: 'Will the bill pass?',
+        outcomes: JSON.stringify(['Yes']),
+        outcomePrices: JSON.stringify([0.62]),
+      }])));
+
+      const results = await evaluateAndNotify({
+        id: 'wf-poly-outcome-missing',
+        nodes: [node('polymarket', {
+          marketSlug: 'will-the-bill-pass',
+          outcomeIndex: '1',
+          priceThreshold: '0.40',
+          direction: 'below',
+        })],
+      }, 'manual', null);
+
+      expect(results[0]).toEqual(expect.objectContaining({
+        status: 'error',
+        message: 'Polymarket outcome is no longer available. Reselect this market.',
+      }));
+    });
+  });
+
+  describe('finalized markets', () => {
+    it('reports a finalized Kalshi settlement without evaluating the threshold', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson({
+        market: {
+          status: 'finalized',
+          settlement_value_dollars: '0.0000',
+          yes_bid_dollars: '0.0000',
+          title: 'Disney earnings mention',
+        },
+      })));
+      const rpc = vi.fn().mockResolvedValue({ data: false, error: null });
+      const supabase = {
+        rpc,
+        from: vi.fn(() => {
+          throw new Error('Finalized no-op should not access run history');
+        }),
+      };
+
+      const results = await evaluateAndNotify({
+        id: 'wf-finalized',
+        nodes: [node('kalshi', {
+          marketTicker: 'KX-DISNEY',
+          priceThreshold: '0.40',
+          direction: 'above',
+        })],
+      }, 'cron', supabase as never);
+
+      expect(results).toEqual([
+        expect.objectContaining({
+          status: 'skip',
+          message: 'Disney earnings mention finalized at 0¢',
+        }),
+      ]);
+      expect(rpc).toHaveBeenCalledWith('claim_market_threshold', expect.objectContaining({
+        p_in_zone: false,
       }));
     });
   });
@@ -302,14 +364,21 @@ describe('workflow evaluation contracts', () => {
     const insert = vi.fn().mockResolvedValue({ error: null });
     const eq = vi.fn().mockResolvedValue({ error: null });
     const update = vi.fn(() => ({ eq }));
+    const recentMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const limit = vi.fn(() => ({ maybeSingle: recentMaybeSingle }));
+    const order = vi.fn(() => ({ limit }));
+    const eqStatus = vi.fn(() => ({ order }));
+    const eqWorkflow = vi.fn(() => ({ eq: eqStatus }));
+    const select = vi.fn(() => ({ eq: eqWorkflow }));
     const supabase = {
       rpc: vi.fn().mockResolvedValue({
         data: null,
         error: { message: 'database unavailable' },
       }),
-      from: vi.fn((table: string) => (
-        table === 'workflow_runs' ? { insert } : { update }
-      )),
+      from: vi.fn((table: string) => {
+        if (table === 'workflow_runs') return { insert, select };
+        return { update };
+      }),
     };
 
     const results = await evaluateAndNotify({
@@ -328,6 +397,50 @@ describe('workflow evaluation contracts', () => {
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({
       status: 'error',
     }));
+  });
+
+  it('suppresses the same automated error for six hours', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okJson([])));
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn();
+    const existingResults = [{
+      nodeId: 'polymarket-1',
+      type: 'polymarket',
+      status: 'error',
+      message: 'Polymarket market is no longer available. Reselect this market.',
+    }];
+    const recentMaybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        started_at: new Date(Date.now() - 60_000).toISOString(),
+        results: existingResults,
+      },
+      error: null,
+    });
+    const limit = vi.fn(() => ({ maybeSingle: recentMaybeSingle }));
+    const order = vi.fn(() => ({ limit }));
+    const eqStatus = vi.fn(() => ({ order }));
+    const eqWorkflow = vi.fn(() => ({ eq: eqStatus }));
+    const select = vi.fn(() => ({ eq: eqWorkflow }));
+    const supabase = {
+      rpc: vi.fn(),
+      from: vi.fn((table: string) => (
+        table === 'workflow_runs' ? { insert, select } : { update }
+      )),
+    };
+
+    const results = await evaluateAndNotify({
+      id: 'wf-poly-error',
+      nodes: [node('polymarket', {
+        marketSlug: 'removed-market',
+        outcomeIndex: '0',
+        priceThreshold: '0.50',
+        direction: 'above',
+      })],
+    }, 'cron', supabase as never);
+
+    expect(results).toEqual(existingResults);
+    expect(insert).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 });
 
