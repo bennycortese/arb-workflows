@@ -41,12 +41,12 @@ import { SlackNodeConfig, SlackNodeHeader } from './nodes/SlackNode';
 import { WorkflowGraph, isActionType, isSourceType } from './lib/workflowGraph';
 
 // ── Node type picker ──────────────────────────────────────────────────────────
-const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source' | 'action'; color: string }[] = [
+const ADD_OPTIONS: { type: NodeType; label: string; desc: string; role: 'source' | 'action'; color: string; disabled?: boolean }[] = [
   { type: 'kalshi',     label: 'Kalshi',     desc: 'Read market prices',  role: 'source', color: '#4ade80' },
   { type: 'polymarket', label: 'Polymarket', desc: 'Read market prices',  role: 'source', color: '#60a5fa' },
   { type: 'discord',   label: 'Discord',    desc: 'Post to channel',      role: 'action', color: '#818cf8' },
   { type: 'email',     label: 'Email',      desc: 'Send email',           role: 'action', color: '#f87171' },
-  { type: 'sms',       label: 'SMS',        desc: 'Send text message',    role: 'action', color: '#4ade80' },
+  { type: 'sms',       label: 'SMS',        desc: 'Disabled, but coming soon', role: 'action', color: '#4ade80', disabled: true },
   { type: 'webhook',   label: 'Webhook',    desc: 'POST structured JSON', role: 'action', color: '#22d3ee' },
   { type: 'telegram',  label: 'Telegram',   desc: 'Send bot message',      role: 'action', color: '#38bdf8' },
   { type: 'slack',     label: 'Slack',      desc: 'Post to channel',       role: 'action', color: '#c084fc' },
@@ -161,8 +161,9 @@ function NodePicker({ onPick, onClose }: { onPick: (t: NodeType) => void; onClos
           {ADD_OPTIONS.filter(o => o.role === 'action').map(opt => (
             <button
               key={opt.type}
+              disabled={opt.disabled}
               onClick={() => { onPick(opt.type); onClose(); }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left group"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg enabled:hover:bg-white/[0.05] transition-colors text-left group disabled:cursor-not-allowed disabled:opacity-45"
             >
               <NodePickerIcon type={opt.type} color={opt.color} />
               <div>
@@ -699,6 +700,7 @@ export default function WorkflowBuilder() {
   // Add a node from the picker
   function addNode(type: NodeType) {
     if (!workflow) return;
+    if (type === 'sms') return;
     if (accountPlan === 'free') {
       const sourceCount = workflow.nodes.filter(node => isSourceType(node.type)).length;
       const actionCount = workflow.nodes.filter(node => isActionType(node.type)).length;
