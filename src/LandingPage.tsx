@@ -6,8 +6,6 @@ const navCopy = messages.nav;
 const landingCopy = messages.landing;
 const heroAccent = 'automated.';
 const heroTitle = landingCopy.heroTitle.replace(heroAccent, '');
-const primaryButtonClass =
-  'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg bg-cyan-500 px-6 text-base font-semibold text-black shadow-[0_0_20px_rgba(6,182,212,0.35)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_28px_rgba(6,182,212,0.5)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 const outlineButtonClass =
   'inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg border border-white/[0.1] px-6 text-base font-medium text-white/70 transition-all hover:border-white/[0.15] hover:bg-white/[0.05] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 

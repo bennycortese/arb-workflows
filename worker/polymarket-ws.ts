@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { notify } from './notifier';
 import { fetchWithRetry } from './retry';
 
